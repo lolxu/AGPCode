@@ -1,0 +1,32 @@
+﻿title: CloverObjective
+tags: 
+---
+Clover: Oh! Hello! I don’t mean to intrude...
+Clover: I was looking for plants outside, and was ambushed by Swarmers!
+Clover: And after seeing you fight them off, I just had to introduce myself!
+Clover: My name’s Clover, what’s yours?
+<<wait  1>>
+Clover: Bandit? Oh, that’s a nice name!
+Clover: Ah, the plant! Thank you so much for saving it!
+Clover: Plants like these are special, you see.
+Clover: When you treat them right, they secrete a strange, energy-rich substance.
+Clover: This substance can power ancient machines, like your drill!
+Clover: Hmm… let’s call it drillixir. Pretty clever, right?
+Clover: Come to think of it, that cannon over there looks pretty ancient as well.
+Clover: I wonder what’ll happen to it once we plant this in the soil?
+===
+
+title: CloverRandom
+tags: 
+---
+Clover: Ah, Bandit, you’re back! And with another plant, I see!
+Clover: Now that there’s more power to the cannon, it can probably launch someone even higher!
+===
+
+title: CloverRandom2
+tags: 
+---
+Clover: ”Open his mind,” my tail! That Clover has no appreciation for plants!
+Clover: In fact, I wouldn’t be surprised if she’s feeding them to the Swarmers!
+Clover: Hmph. Well if she does, I’ll be ready…With my COMBAT KICK!
+===

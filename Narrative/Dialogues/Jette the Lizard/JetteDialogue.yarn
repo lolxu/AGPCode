@@ -1,0 +1,23 @@
+﻿title: JetteObjectiveDialogue
+tags:
+---
+Jette: ObjectiveText A
+Jette: ObjectiveText B
+Jette: ObjectiveText C
+===
+
+title: JetteRandomDialogue1
+tags:
+---
+Jette: RandomDialogue1 A
+Jette: RandomDialogue1 B
+Jette: RandomDialogue1 C
+===
+
+title: JetteRandomDialogue2
+tags:
+---
+Jette: RandomDialogue2 A
+Jette: RandomDialogue2 B
+Jette: RandomDialogue2 C
+===

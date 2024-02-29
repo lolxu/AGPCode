@@ -1,0 +1,23 @@
+﻿title: NoodleObjectiveDialogue
+tags:
+---
+Noodle: ObjectiveText A
+Noodle: ObjectiveText B
+Noodle: ObjectiveText C
+===
+
+title: NoodleRandomDialogue1
+tags:
+---
+Noodle: RandomDialogue1 A
+Noodle: RandomDialogue1 B
+Noodle: RandomDialogue1 C
+===
+
+title: NoodleRandomDialogue2
+tags:
+---
+Noodle: RandomDialogue2 A
+Noodle: RandomDialogue2 B
+Noodle: RandomDialogue2 C
+===
