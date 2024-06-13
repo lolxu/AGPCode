@@ -25,7 +25,6 @@ namespace __OasisBlitz.Player.StateMachine.SubStates
       }
 
       Ctx.IsSliding = true;
-      Ctx.BanditAnimationController.SetSliding(true);
       Ctx.ModelRotator.SetSliding(true);
 
       Ctx.PlayerAudio.StartSlide();
@@ -33,17 +32,26 @@ namespace __OasisBlitz.Player.StateMachine.SubStates
 
     public override void UpdateState()
     {
-      Ctx.DustTrail.SetEmissionRate((Ctx.PlayerPhysics.Velocity.magnitude - Ctx.PlayerPhysics.blitzSpeedThreshold)/(Ctx.PlayerPhysics.blitzSpeedThreshold) * 2.0f);
+      if (Ctx.InWaterTrigger)
+      {
+        Ctx.DustTrail.EnableWaterTrail();
+      }
+      else
+      {
+        Ctx.DustTrail.SetEmissionRate((Ctx.PlayerPhysics.Velocity.magnitude - Ctx.PlayerPhysics.blitzSpeedThreshold) /
+          (Ctx.PlayerPhysics.blitzSpeedThreshold) * 2.0f);
+      }
       CheckSwitchStates();
     }
 
     public override void ExitState()
     {
       Ctx.IsSliding = false;
-      Ctx.BanditAnimationController.SetSliding(false);
       Ctx.ModelRotator.SetSliding(false);
       Ctx.DustTrail.DisableDust();
+      Ctx.DustTrail.DisableWaterTrail();
       Ctx.PlayerAudio.StopSlide();
+      // Debug.Log("Exiting slide state");
     }
 
     public override void InitializeSubState()

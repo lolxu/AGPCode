@@ -20,6 +20,8 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Checkpoints
         [SerializeField] private GameObject KeyboardHotkey;
         [SerializeField] private GameObject ControllerHotkeys;
         private string hotkeyType;
+        
+        
 
         private void OnTriggerEnter(Collider other)
         {
@@ -48,10 +50,11 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Checkpoints
                 }
                 if (!myCurrentCheckpointHint.enabled)
                 {
-                    FeelEnvironmentalManager.Instance.checkpointFeedback.PlayFeedbacks(other.gameObject.transform.position);
+                    // FeelEnvironmentalManager.Instance.checkpointFeedback.PlayFeedbacks(other.gameObject.transform.position);
                 }
                 
                 RespawnManager.Instance.SetSpawnPoint(gameObject);
+                InLevelMetrics.Instance?.LogEvent(this, MetricAction.ActivateCheckpoint);
 
                 /* We are not drilling into checkpoints anymore
                 if (ctx.Drilling)

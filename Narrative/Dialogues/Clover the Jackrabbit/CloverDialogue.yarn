@@ -1,32 +1,179 @@
-﻿title: CloverObjective
+﻿title: CloverOrdered1-0
 tags: 
 ---
-Clover: Oh! Hello! I don’t mean to intrude...
-Clover: I was looking for plants outside, and was ambushed by Swarmers!
-Clover: And after seeing you fight them off, I just had to introduce myself!
-Clover: My name’s Clover, what’s yours?
-<<wait  1>>
-Clover: Bandit? Oh, that’s a nice name!
-Clover: Ah, the plant! Thank you so much for saving it!
-Clover: Plants like these are special, you see.
-Clover: When you treat them right, they secrete a strange, energy-rich substance.
-Clover: This substance can power ancient machines, like your drill!
-Clover: Hmm… let’s call it drillixir. Pretty clever, right?
-Clover: Come to think of it, that cannon over there looks pretty ancient as well.
-Clover: I wonder what’ll happen to it once we plant this in the soil?
+<<Intro Clover(Clone)>>
+// happy idle
+// surprised
+<<SetIdle 3DDialogue 5>>
+// reacting
+// upbeat
+<<Emotion 3DDialogue 0>>
+<<SetAA 3DDialogue 0 "true" "true">>
+Clover: Wow! Just... popped out of the ground, huh? You must be <color=\#aff5ff>Bandit</color>, then! #line:0dbe7c0 
+<<Emotion 3DDialogue 0>>
+Clover: My name is <color=\#aff5ff>Clover</color>, and I've been looking all over the desert for you! #line:03b39eb 
+<<Emotion 3DDialogue 0>>
+Clover: Word is you're looking for the <color=\#aff5ff>oasis in the sky</color>. Well, I'm here to help! #line:0f6bd15 
 ===
 
-title: CloverRandom
+title: CloverOrdered1-1
 tags: 
 ---
-Clover: Ah, Bandit, you’re back! And with another plant, I see!
-Clover: Now that there’s more power to the cannon, it can probably launch someone even higher!
+// happy idle
+// upbeat
+<<SetIdle 3DDialogue 5>>
+<<Emotion 3DDialogue 0>>
+Clover: See this cannon? It runs on a natural energy called <color=\#aff5ff>drillixir</color>. It's an elixir, but... drillier?  #line:0657c4c 
+<<Emotion 3DDialogue 0>>
+Clover: ...Anyway, that <color=\#aff5ff>flower</color> you just planted happens to contain some! #line:0484dda 
+<<Emotion 3DDialogue 0>>
+Clover: The more flowers we get, the higher the cannon can launch you! #line:0ecb061 
 ===
 
-title: CloverRandom2
+title: CloverOrdered1-2
+tags:
+---
+// happy idle
+// upbeat
+<<Emotion 3DDialogue 0>>
+Clover: Looks like the next highest archipelago has a ton of ancient technology around! #line:0c48c90 
+<<Emotion 3DDialogue 0>>
+Clover: Ancient critters used it as a path to the heavens, though it must be dilapidated by now... #line:0a2e80c
+<<Emotion 3DDialogue 0>>
+Clover: Still, those obelisks must be a sight to behold. #line:0c7a6d7 
+// joyful jump
+// upbeat
+<<Emotion 3DDialogue 0>>
+Clover: Whenever you're ready to take off, grapple into that <color=\#aff5ff>cannon</color> over there! #line:02ff599 
+===
+
+title: CloverOrdered1-3
+Clover: 
+---
+<<SetIdle 3DDialogue 4>>
+// upbeat
+<<Emotion 3DDialogue 0>>
+Clover: The flower's safe with me, <color=\#aff5ff>Bandit</color>! Don't you worry! #line:0d45cb7 
+<<SetAA 3DDialogue 0 "true" "true">>
+// upbeat
+<<Emotion 3DDialogue 0>>
+Clover: If those <color=\#aff5ff>Geomites</color> take one step towards this garden, I'll kick their eyes in!  #line:0257756 
+
+===
+
+title: CloverOrdered2-0
 tags: 
 ---
-Clover: ”Open his mind,” my tail! That Clover has no appreciation for plants!
-Clover: In fact, I wouldn’t be surprised if she’s feeding them to the Swarmers!
-Clover: Hmph. Well if she does, I’ll be ready…With my COMBAT KICK!
+// default idle
+// calm
+<<Emotion 3DDialogue 4>>
+Clover: Next up on your sky tour through the sky is the skeleton of an enormous, ancient creature. #line:0d3aa87 
+<<Emotion 3DDialogue 4>>
+Clover: Legends say the bones used to belong to a <color=\#aff5ff>guardian of the skies</color>, but... #line:08af057 
+// sad
+<<SetIdle 3DDialogue 2>>
+// frustrated
+<<Emotion 3DDialogue 3>>
+Clover: ...Well, you can probably guess how things ended up for her.  #line:09a76f0 
+// upbeat
+<<Emotion 3DDialogue 0>>
+Clover: As usual, use the <color=\#aff5ff>cannon</color> whenever you're ready!  #line:02cdbae 
+===
+
+title: CloverOrdered2-1
+tags: 
+---
+// frustrated
+<<Emotion 3DDialogue 3>>
+Clover: I don't trust <color=\#aff5ff>Juno</color>. She may look like a bat, but I think she's really a <color=\#aff5ff>Geomite</color> in disguise. #line:047275f
+// fighting idle
+// frustrated
+<<SetIdle 3DDialogue 4>>
+<<Emotion 3DDialogue 3>>
+Clover: Don't worry, though. She won't be coming anywhere near the garden. #line:02ee0bf  
+===
+
+title: CloverOrdered2-2
+tags: 
+---
+// upbeat
+<<Emotion 3DDialogue 0>>
+Clover: Did you know that <color=\#aff5ff>drillixir</color> actually comes from the core of our planet? It's true! #line:09fe8d7 
+// sad idle
+<<SetIdle 3DDialogue 2>>
+// frustrated
+<<Emotion 3DDialogue 3>>
+Clover: No, no it's not. That was a lie. I'm sorry. #line:01987c4 
+===
+
+title: CloverOrdered2-3
+Clover: 
+---
+//Injured Idle
+<<SetIdle 3DDialogue 1>>
+// random
+<<Emotion 3DDialogue 7>>
+Clover: The flowers look so delicious... One nibble couldn't hurt, could it? I hope... #line:0b1b93e 
+//Disable Injured Idle
+<<SetIdle 3DDialogue 1 "false">>
+//look around idle
+<<SetIdle 3DDialogue 6>>
+// reacting
+<<SetAA 3DDialogue 0 "true" "true">>
+//surprised (sound)
+<<Emotion 3DDialogue 1>>
+Clover: ah! Uh! Why hello there, <color=\#aff5ff>Bandit</color>! How's... uh... the weather? #line:0bad535 
+===
+
+title: CloverOrdered3-0
+tags: 
+---
+// happy idle
+<<SetIdle 3DDialogue 5>>
+// upbeat
+<<Emotion 3DDialogue 0>>
+Clover: Alright, <color=\#aff5ff>Bandit</color>. It's time to go to the highest archipelago in the sky. You ready? #line:0f0adcf 
+<<Emotion 3DDialogue 0>>
+Clover: I don't mean to scare you, but nobody's been able to reach it for ages. #line:0c06565 
+//Disable happy idle
+<<SetIdle 3DDialogue 5 "false">>
+// thinking (animation and sound) TODO: ANIMATION
+<<Emotion 3DDialogue 2>>
+Clover: Who knows what you'll find up there... #line:0fda18d 
+<<Emotion 3DDialogue 2>>
+Clover: ...um! I'm sure you'll be fine, though! #line:04e356a 
+===
+
+title: CloverOrdered3-1
+tags: 
+---
+// default idle
+// calm
+<<Emotion 3DDialogue 4>>
+Clover: Being a tortoise, it's no surprise that <color=\#aff5ff>Miles</color> is so wise. He's more than a century old! #line:0688aec 
+<<Emotion 3DDialogue 4>>
+Clover: I wonder if I'll ever be that old... #line:0ecb1e9  
+===
+
+title: CloverOrdered3-2
+tags: 
+---
+// thinking (animation) TODO: ANIMATION
+// calm
+<<Emotion 3DDialogue 4>>
+Clover: Maybe I was being too paranoid about <color=\#aff5ff>Juno</color>... #line:022fd13 
+<<Emotion 3DDialogue 4>>
+Clover: Her 'research' is misguided, of course, but she's really not so bad. #line:00c51dc 
+===
+
+title: CloverOrdered3-3
+Clover: 
+---
+// happy idle
+<<SetIdle 3DDialogue 5>>
+// upbeat
+<<Emotion 3DDialogue 0>>
+Clover: Can you believe how much the garden's been growing? #line:0edba35 
+<<Emotion 3DDialogue 0>>
+Clover: Pretty soon, there'll be plants all over the place! #line:03b9648 
 ===

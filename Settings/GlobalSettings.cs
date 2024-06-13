@@ -34,16 +34,17 @@ public class GlobalSettings : MonoBehaviour
 
     [SerializeField] private AdaptiveButtonsHUD adaptiveButtons;
 
-    private int bypassFirstTwoControlsChanged = 0;
-
 
     public static Action ControlsChangedEvent;
+    public bool firstKeyPressed { get; private set; } = false;
+
+    // Called in settings prefab --> PlayerInput events
     public void OnControlsChanged()
     {
-        if(bypassFirstTwoControlsChanged < 2) {     // Cuz pInput keeps defaulting to Keyboard AFTER I reset it...
-            bypassFirstTwoControlsChanged++;
-            return;
-        }
+        // Don't do first key check for main menu gate
+        if(!firstKeyPressed && !SceneManager.GetActiveScene().name.ToLower().Contains("mainmenu")) { return; }
+//
+        Debug.Log($"Controls changed to: {pInput.currentControlScheme}");
         switch (pInput.currentControlScheme)
         {
             case "Keyboard":
@@ -65,9 +66,20 @@ public class GlobalSettings : MonoBehaviour
         }
         if(ControlsChangedEvent != null) { ControlsChangedEvent(); }
     }
+    public void ResetFirstKeyPressed()
+    {
+        firstKeyPressed = false;
+    }
+    public void SetControlsPrevScene()
+    {
+        //Debug.Log("Prev Scene Control Scheme Saved");
+        controlsSchemePrevScene = controlScheme;
+    }
     public void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if(scene.name == "MainMenu") { bypassFirstTwoControlsChanged = 2; }
+        firstKeyPressed = false;
+        //Debug.Log($"Init control scheme to {controlsSchemePrevScene}");
+
         switch (controlsSchemePrevScene)
         {
             case "KEYBOARD":
@@ -83,8 +95,7 @@ public class GlobalSettings : MonoBehaviour
 
     private void OnSceneUnloaded(Scene scene)
     {
-        controlsSchemePrevScene = controlScheme;
-        bypassFirstTwoControlsChanged = 0;
+        //firstKeyPressed = false;
     }
 
     public void SetPlayerControllerSetting(string _option)
@@ -92,7 +103,12 @@ public class GlobalSettings : MonoBehaviour
         playerControllerSetting = _option;
         SetDisplayedController();
     }
-
+    public void FirstKeyPressed()
+    {
+        Debug.Log("FIRST KEY PRESSED");
+        firstKeyPressed = true;
+        OnControlsChanged();
+    }
     public void SetDisplayedController()
     {
         if(playerControllerSetting == "AUTO")
@@ -116,7 +132,7 @@ public class GlobalSettings : MonoBehaviour
                     break;
             }
         }
-        if(SceneManager.GetActiveScene().name != "MainMenu")
+        if(!FindObjectOfType<MainMenu>())
         {
             if (PauseCanvas == null) {
                 var canvasScalers = FindObjectsOfType<CanvasScaler>(true);
@@ -151,6 +167,12 @@ public class GlobalSettings : MonoBehaviour
     {
         controller = _controller;
         SetDisplayedController();
+        
+        try
+        {
+            InLevelMetrics.LogEvent(MetricAction.ControllerChange, _controller);
+        }
+        catch {}
     }
 
     public int[] GetResolutionValues()
@@ -202,15 +224,7 @@ public class GlobalSettings : MonoBehaviour
     }
     public void LoadGlobalPlayerPrefs()
     {
-       
-        // Refactored a bit to set the initial values in PlayerPrefs
-        // TODO: Create a default resolution if none is found
-        // resolution[0] = PlayerPrefs.GetInt("Resolution_X");
-        // resolution[1] = PlayerPrefs.GetInt("Resolution_Y");
-        // resolution = resolution[0] == 0 || resolution[1] == 0 ? new int[] { 1920, 1080 } : resolution;
-        // PlayerPrefs.SetInt("Resolution_X", resolution[0]);
-        // PlayerPrefs.SetInt("Resolution_Y", resolution[1]);
-        
+              
         // Resolution defaulted to 1920 x 1080 if does not exist
         if (!PlayerPrefs.HasKey("Resolution_X"))
         {
@@ -238,18 +252,17 @@ public class GlobalSettings : MonoBehaviour
         }
         else { fullscreen = PlayerPrefs.GetInt("Fullscreen") == 1 ? true : false; }
         
-        // Controls HUD defaulted to true if does not exist
+        // Controls HUD defaulted to false if does not exist    -- DON'T SHOW UNLESS TURNED ON
         if (!PlayerPrefs.HasKey("Controls HUD"))
         {
-            controlsHUD = true;
-            PlayerPrefs.SetInt("Controls HUD", 1);
-            // Debug.Log("Initialized Controls HUD to" + controlsHUD);
+            controlsHUD = false;
+            PlayerPrefs.SetInt("Controls HUD", 0);
+            Debug.Log("Initialized Controls HUD to" + controlsHUD);
         }
         else { controlsHUD = PlayerPrefs.GetInt("Controls HUD") == 1 ? true : false; }
 
         SavePlayerPrefs();
 
-        // Debug.Log($"LOADED Resolution: {resolution[0]}, {resolution[1]}\tFullscreen: {fullscreen}");
     }
     private void Awake()
     {
@@ -272,7 +285,15 @@ public class GlobalSettings : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        //SetController("KEYBOARD");
+        if(Gamepad.current == null)
+        {
+            SetController("KEYBOARD");
+        }
+        else
+        {
+            SetController("XBOX");
+        }
+        // SetController("KEYBOARD");
         SceneManager.sceneLoaded += OnSceneLoaded;
         SceneManager.sceneUnloaded += OnSceneUnloaded;
     }
@@ -285,6 +306,6 @@ public class GlobalSettings : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //if (playerControllerSetting == "AUTO" && displayedController != controlScheme) { OnControlsChanged(); }
+
     }
 }

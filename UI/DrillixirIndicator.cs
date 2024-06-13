@@ -70,15 +70,12 @@ namespace __OasisBlitz.UI
                 blastIndicator.SetActive(touchGroundToBlast);
                 lowBlastIndicator.SetActive(touchGroundToBlast);
                 recoveringBlastIndicator.SetActive(touchGroundToBlast);
-                if(BounceAbility.Instance.CanBounce) { PlayBlastReadyParticles(); }
-                else { StopBlastReadyParticles(); }
             }
             else
             {
                 blastIndicator.SetActive(false);
                 lowBlastIndicator.SetActive(false);
                 recoveringBlastIndicator.SetActive(false);
-                StopBlastReadyParticles();
             }
         }
         private void LateUpdate()
@@ -248,16 +245,6 @@ namespace __OasisBlitz.UI
                 leftEmission.rateOverTime = 15;
                 rightEmission.rateOverTime = 15;
             }
-        }
-        public void PlayBlastReadyParticles()
-        {
-            leftSparks.Play();
-            rightSparks.Play();
-        }
-        public void StopBlastReadyParticles()
-        {
-            leftSparks.Stop();
-            rightSparks.Stop();
         }
 
         private void Update()

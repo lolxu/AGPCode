@@ -1,4 +1,6 @@
+using __OasisBlitz.Player.Physics;
 using __OasisBlitz.Utility;
+using DG.Tweening;
 using UnityEngine;
 
 namespace __OasisBlitz.Player
@@ -14,8 +16,15 @@ namespace __OasisBlitz.Player
         [SerializeField] private Vector3 _startPosition;
 
         [SerializeField] private TrailRenderer _trailRenderer;
+        public DrillDirection _drillDirection;
+        
+        [SerializeField] private Material _drillMaterial;
+        [SerializeField] private MeshRenderer[] _drillMeshRenderers;
+        [SerializeField] private Color defaultDrillColor;
+        [SerializeField] private Color whiteDrillColor;
 
-        private const float _drillDistance = 0.35f;
+        private const float _drillDistance = 1.1f;
+        [SerializeField] private float drillYOffset = 0.0f;
 
         private const float _unpreppedSize = 0.7f;
         private const float _preppedSize = 1.0f;
@@ -25,19 +34,9 @@ namespace __OasisBlitz.Player
         // Launching state
         private float launchVelocity = 40f;
         private Vector3 launchDirection;
-        
-        [SerializeField] private ProjectileDrill projectileDrill;
 
-        private enum DrillState
-        {
-            Drilling,
-            Shot,
-            AttachedToTarget,
-            Retracting,
-            Off
-        }
+        private Tween drillTween;
         
-        private DrillState drillState = DrillState.Off;
 
         public bool visible { get; private set; }
 
@@ -49,60 +48,80 @@ namespace __OasisBlitz.Player
             _startRotation = transform.localRotation;
             _spring.equilibriumPosition = 1.0f;
             
-            // gameObject.SetActive(true);
+            // Set the material of each mesh
+            foreach (var meshRenderer in _drillMeshRenderers)
+            {
+                meshRenderer.material = _drillMaterial;
+            }
+            
         }
         
         void Update()
         {
-
-            switch (drillState)
-            {
-                // create basic case for  each state
-                case DrillState.Drilling:
-                    break;
-                case DrillState.Shot:
-                    transform.position += launchDirection * (launchVelocity * Time.deltaTime);
-                    break;
-                case DrillState.AttachedToTarget:
-                    break;
-                case DrillState.Retracting:
-                    break;
-                case DrillState.Off:
-                    break;
-            }
             
             // Update scale based on juicy spring
             transform.localScale = _startScale * _spring.position;
-        }
-
-        public void ShootToTarget(Vector3 targetSurfacePosition)
-        {
-            drillState = DrillState.Shot;
-            projectileDrill.ShootDrill(transform.position, targetSurfacePosition);
-        }
-
-        public void EndDash()
-        {
-            projectileDrill.HideDrill();
+            
+            SetDirection(_drillDirection.GetDrillDirection());
         }
         
-        public void SetDirection(Vector3 direction)
+        private void SetDirection(Vector3 direction)
         {
-            transform.position = _playerTransform.position + (direction.normalized * _drillDistance);
+            transform.position = _playerTransform.position + new Vector3(0, drillYOffset, 0) + (direction.normalized * _drillDistance);
             transform.rotation = Quaternion.LookRotation(direction);
         }
 
-        public void StartDrillSpin()
+        public void StartDrill()
+        {
+            // Check if the drill is already visible, to avoid flashing white when certain animations re-trigger this
+            if (!visible)
+            {
+                _drillMaterial.DOColor(whiteDrillColor, 0.1f).OnComplete(() =>
+                {
+                    _drillMaterial.DOColor(defaultDrillColor, 0.05f);
+                });
+            }
+
+            DrillEnable();
+            
+            // Start a dotween to flash white for 0.05s
+        }
+
+        public void StopDrill()
+        {
+            // Start a dotween to flash white for 0.05s
+            _drillMaterial.DOColor(whiteDrillColor, 0.1f).OnComplete(() =>
+            {
+                DrillDisable();
+            });
+        }
+
+        private void DrillEnable()
+        {
+            SetDrillVisible();
+            StartDrillSpin();
+            
+            
+        }
+
+        private void DrillDisable()
+        {
+            SetDrillInvisible();
+            StopDrillSpin();
+            
+        }
+
+        private void StartDrillSpin()
         {
             _drillRotator.SetRotating(true);
         }
 
-        public void StopDrillSpin()
+        private void StopDrillSpin()
         {
             _drillRotator.SetRotating(false);
         }
 
-        public void SetDrillVisible()
+        private void SetDrillVisible()
         {
             if (visible) return;
             visible = true;
@@ -118,7 +137,7 @@ namespace __OasisBlitz.Player
 
         }
         
-        public void SetDrillInvisible()
+        private void SetDrillInvisible()
         {
             visible = false;
             gameObject.SetActive(false);
@@ -132,16 +151,6 @@ namespace __OasisBlitz.Player
         public void DrillBlip()
         {
             _spring.velocity = 40f;
-        }
-
-        public void SetFast()
-        {
-            _drillRotator.SetFast();
-        }
-
-        public void SetSlow()
-        {
-            _drillRotator.SetSlow();
         }
     }
 }

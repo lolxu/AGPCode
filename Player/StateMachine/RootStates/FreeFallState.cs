@@ -1,5 +1,6 @@
 using System.Collections;
 using __OasisBlitz.__Scripts.Enemy.old;
+using __OasisBlitz.__Scripts.FEEL;
 using __OasisBlitz.__Scripts.Player.Environment.Fruits;
 using __OasisBlitz.Enemy;
 using __OasisBlitz.Player.Physics;
@@ -16,6 +17,8 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
         private const float CoyoteTime = .15f;
         public bool coyoteTimeEnabled = false;
         private Tween CoyoteTimeTween = null;
+        private Tween JumpBufferTween = null;
+        private float JumpBufferTime = .05f;
 
         public FreeFallState(PlayerStateMachine currentContext, PlayerStateFactory playerStateFactory) : base(currentContext, playerStateFactory)
         {
@@ -25,7 +28,7 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
 
         public override void EnterState()
         {
-            Ctx.BanditAnimationController.PlayJump();
+            Ctx.BanditAnimationController.PlayFreeFall();
             
             Ctx.DrillReleased = true;
             Ctx.PlayerPhysics.CurrentGravityMode = PlayerPhysics.GravityMode.FreeFall;
@@ -42,6 +45,17 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
 
         public override void UpdateState()
         {
+            if (Ctx.JumpRequested)
+            {
+                JumpBufferTween?.Kill();
+                ((GroundedState)Factory.Grounded()).jumpBuffered = true;
+                JumpBufferTween = DOVirtual.DelayedCall(JumpBufferTime, () =>
+                {
+                    ((GroundedState)Factory.Grounded()).jumpBuffered = false;
+                }, false);
+            }
+            
+            
             if (coyoteTimeEnabled
                 && Ctx.JumpRequested 
                 && !Ctx.RequireNewJumpPress)
@@ -64,7 +78,7 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
                 if (bounceAttemptResult.DidBounce)
                 {
                     // Begin the blast sequence
-                    Ctx.BanditAnimationController.PlayBlast(bounceAttemptResult.BounceVelocity);
+                    Ctx.BanditAnimationController.PlayBlastFromFreefall(bounceAttemptResult.BounceVelocity);
                 }
             }
 
@@ -82,16 +96,28 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
             // If grounded and moving downwards, switch to grounded state
             if (Ctx.CharacterController.IsGrounded)
             {
+                JumpBufferTween?.Kill();
+                // Play some particles
+                if (!Ctx.InWaterTrigger)
+                {
+                    FeelEnvironmentalManager.Instance.PlayLandFeedback(Ctx.ModelRotator.leftFootTransform.position,
+                        0.25f);
+                    FeelEnvironmentalManager.Instance.PlayLandFeedback(Ctx.ModelRotator.rightFootTransform.position,
+                        0.25f);
+                }
                 SwitchState(Factory.Grounded());
             }
-            else if (Ctx.DrillRequested && Ctx.DrillixirManager.CanStartDrilling() && !Ctx.DrillLocked && !Ctx.RequireNewDrillPressOrEndGrounded && Ctx.ToggleDrill)
+            else if (Ctx.DrillRequested && !Ctx.DrillLocked && !Ctx.RequireNewDrillPressOrEndGrounded && Ctx.ToggleDrill)
             {
                 SwitchState(Factory.Drill());
             }
             // TODO: Uncomment this if we don't want to restrict the dash to drilling
-            else if (Ctx.TargetedDashRequested && Ctx.TargetedDash.CanPerformDash())
+            else if (Ctx.TargetedDashRequested 
+                     && Ctx.TargetedDash.CanPerformDash()
+                     && !Ctx.RequireNewTargetedDashPress)
             {
                 // This comes before the switch because the behavior of exit state on grounded depends upon whether the dash is performed
+                Ctx.RequireNewTargetedDashPress = true;
                 Ctx.ModelRotator.OnDash(Ctx.TargetedDash.TargetPosition());
                 SwitchState(Factory.Dash());
             }

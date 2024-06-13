@@ -37,13 +37,14 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
         protected float initialLocalY;
         protected float initialLocalYTip;
 
-        private TargetedDash _dash;
+        protected TargetedDash _dash;
         protected PlayerStateMachine ctx;
         protected float initialScaleY;
 
-        private bool bCanEnterCannon = true;
+        protected bool bCanEnterCannon = true;
 
         protected Sequence CannonSequence = null;
+        public Action OnEnterCannon;
 
         private void Start()
         {
@@ -128,10 +129,22 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
             CannonSequence.AppendCallback(OnLaunchCannonAction);
             
             // launch animation
-            // CannonSequence.Append(
-            //     scalePoint.transform.DOScaleY(initialScaleY * .2f,
-            //         (7 * buildUpTime) / 8.0f).SetEase(Ease.OutCubic).OnComplete(() =>
-            //         scalePoint.transform.DOScaleY(initialScaleY, buildUpTime / 8.0f).SetEase(Ease.InOutCubic)));
+            CannonLaunchAnimation();
+
+            // actual launch code
+            CannonSequence.AppendCallback(ExitCannon);
+            // re-enable the cannon to use it again after a little
+            CannonSequence.Append(DOVirtual.DelayedCall(.5f, () => OnPostExitCannon(), false));
+
+            // do not lock player to cannon if reset, reset collider and scale
+            CannonSequence.OnKill(() =>
+            {
+                ResetCannon();
+            });
+        }
+
+        protected void CannonLaunchAnimation()
+        {
             CannonSequence.Append(
                 shaft.DOScale(new Vector3(initialScale.x * horizontalScale, initialScale.y * verticalScale, initialScale.z * horizontalScale),
                     (7 * buildUpTime) / 8.0f).SetEase(Ease.OutCubic).OnComplete(() =>
@@ -147,17 +160,6 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
                 x => ctx.CharacterController.SetPosition(tip.position),
                 tip.position,
                 buildUpTime));
-
-            // actual launch code
-            CannonSequence.AppendCallback(ExitCannon);
-            // re-enable the cannon to use it again after a little
-            CannonSequence.Append(DOVirtual.DelayedCall(.5f, () => OnPostExitCannon(), false));
-
-            // do not lock player to cannon if reset, reset collider and scale
-            CannonSequence.OnKill(() =>
-            {
-                ResetCannon();
-            });
         }
         
         public void BeginLaunchRoutine()
@@ -190,7 +192,12 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
             
             bCanEnterCannon = false;
             cannonCollider.enabled = false;
-            OnEnterCannonAction();
+            OnEnterCannonAction();  // john note: don't know how this got here or how it became an inheritance thing...
+                                    //      should have really been observer pattern from the start
+            if (OnEnterCannon != null)
+            {
+                OnEnterCannon();
+            }
         }
 
         public void SetEnabledMaterial(bool isEnabled)
@@ -209,7 +216,6 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
         private void OnExitCannon()
         {
             // re-enable player vulnerability
-            ctx.DrillixirManager.FullRefillDrillixir();
             AudioManager.instance.PlayOneShot(FMODEvents.instance.cannonBoom, transform.position);
             CameraStateMachine.Instance.SetToLookAtVelocity();
         }
@@ -219,8 +225,6 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
         {
             // re-enable cannon collider
             ResetCannon();
-
-            PostExitCannonAction();
         }
         
         /*
@@ -228,11 +232,6 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
          * Override section for action hooks
          * 
          */
-
-        /// <summary>
-        /// Implement to have things trigger after exiting cannons
-        /// </summary>
-        protected virtual void PostExitCannonAction() { }
 
         /// <summary>
         /// Implement to do stuff when entering cannons

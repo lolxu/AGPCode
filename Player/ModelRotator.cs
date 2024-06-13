@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using __OasisBlitz.Camera.StateMachine;
 using __OasisBlitz.Player.Animation;
 using UnityEngine;
 using __OasisBlitz.Player.Physics;
@@ -23,9 +24,8 @@ namespace __OasisBlitz.Player
     // relevant components, then reconstruct it based on the quaternions that we store in this class.
     public class ModelRotator : MonoBehaviour
     {
-        [SerializeField] private PlayerPhysics playerPhysics;
         [SerializeField] private float rotationFactorPerFrame;
-        [SerializeField] private BanditAnimationController banditAnimationController;
+        [SerializeField] private PlayerPhysics playerPhysics;
         
         [Header("Flip Parameters")]
         [SerializeField] private float flipDuration;
@@ -81,6 +81,18 @@ namespace __OasisBlitz.Player
         //lock rotation
         private bool lockRotation = false;
 
+        //ModelVisability
+        [SerializeField] private List<GameObject> ModelComponents;
+        [SerializeField] private Material BanditWhite;
+
+        [Header("Feet")] 
+        public Transform leftFootTransform;
+        public Transform rightFootTransform;
+
+        [Header("Hands")] 
+        public Transform leftHandTransform;
+        public Transform rightHandTransform;
+        
         void Awake()
         {
             startPositionLocal = transform.localPosition;
@@ -108,10 +120,6 @@ namespace __OasisBlitz.Player
                 AerialRotations();
             }
 
-            if (blasting)
-            {
-                UpdateBlast();
-            }
         }
 
         public void SetGrounded(bool grounded)
@@ -143,6 +151,16 @@ namespace __OasisBlitz.Player
         {
             currentYawQuaternion =
                 Quaternion.FromToRotation(Vector3.forward, new Vector3(lookTarget.x, 0, lookTarget.z));
+            StartCoroutine(WaitToResetCamera());
+        }
+
+        private IEnumerator WaitToResetCamera()
+        {
+            yield return null;
+            // Reset Camera look direction
+            CameraStateMachine.Instance.ResetVerticalAxis();
+            CameraStateMachine.Instance.ResetHorizontalAxis();
+            // CameraStateMachine.Instance.ResetCamera();
         }
         
         public void SetAndLockYaw(Vector3 lookTarget)
@@ -162,24 +180,21 @@ namespace __OasisBlitz.Player
             transform.localPosition = startPositionLocal;
             transform.localRotation = Quaternion.identity;
         }
-        
-        
-        public void OnStartDrilling()
+
+
+        public void SetUpright(bool upright)
         {
-            if (dashing) return;
-            blastTween?.Complete();
-            upright = false;
-            StartFlip(true, flipDuration);
-            banditAnimationController.PlayFlipIntoDrill();
+            this.upright = upright;
         }
 
-        public void OnStopDrilling()
+        public void OnStartBlasting()
         {
-            if (dashing) return;
-            blastTween?.Complete();
-            upright = true;
-            StartFlip(false, flipDuration);
-            banditAnimationController.PlayFlipOutOfDrill();
+            
+        }
+
+        public void OnStopBlasting()
+        {
+            
         }
 
         public void OnDash(Vector3 targetPosition)
@@ -195,180 +210,8 @@ namespace __OasisBlitz.Player
             dashing = false;
         }
 
-        public void OnBlast(Vector3 blastVelocity)
-        {
-            // Finish any ongoing flip
-            flipTween?.Complete();
-            
-            // Bandit should yaw away from the lateral blast direction, then pitch until the forwards vector points directly
-            // away
-            yawLocked = true;
-            blasting = true;
-
-            Vector3 lateralVelocity = new Vector3(blastVelocity.x, 0, blastVelocity.z);
-
-            // If lateral direction is nearly zero, do not change yaw
-            float lateralVelocityMagnitude = lateralVelocity.magnitude;
-            if (lateralVelocityMagnitude > 0.01f)
-            {
-                currentYawQuaternion = Quaternion.FromToRotation(Vector3.forward, lateralVelocity);
-                // currentPitch = Vector3.Angle(Vector3.up, blastVelocity * -1);
-                currentPitch = blastPitch;
-                // currentPitch = 120f;
-                // currentYawQuaternion = Quaternion.identity; 
-            }
-            else
-            {
-                currentPitch = 90f;
-                // StartFlip(false, 0.8f);
-            }
-            
-            // A dotween tween that interpolates flipProgress from 0 to 1 and sets flipping to false when done
-            blastTween = DOTween.To(() => blastProgress, x => blastProgress = x, 1f, blastLockDuration)
-                        .OnComplete(() => {
-                            blasting = false;  // Set flipping to false when the tween is complete
-                            yawLocked = false;
-                            blastProgress = 0f;
-                            // TODO: Go into drill or into upright based on current state
-                            StartFlip(false, blastFlipDuration);
-                        });
-            
-        }
-
-        /// <summary>
-        /// Start a tween that interpolates the flipPitch field, which another function will apply to the model
-        /// </summary>
-        private void StartFlip(bool enterDrill, float duration)
-        {
-            // Interrupt existing flip if necessary
-            if (flipTween != null)
-            {
-                flipTween.Complete();
-            }
-
-            flipStartPitch = currentPitch;
-
-            Flipping = true;
-
-            flipProgress = 0;
-            
-            
-            
-            // A dotween tween that interpolates flipProgress from 0 to 1 and sets flipping to false when done
-            flipTween = DOTween.To(() => flipProgress, x => flipProgress = x, 1f, duration)
-                        .OnComplete(() => {
-                            Flipping = false;  // Set flipping to false when the tween is complete
-                            flipProgress = 0f;
-                        });
-            
-
-            // Flip cases:
-            // 1. Starting upright, target is down 
-            // **** Backflip, no pass
-            FlipType intoDrillDown = new FlipType {forward = true, passOnce = false, intoDrill = true};
-            // 2. Starting upright, target is up
-            // **** Frontflip, also no pass?
-            // Switched from the orignal idea, this is also forwards now
-            FlipType intoDrillUp = new FlipType {forward = true, passOnce = false, intoDrill = true};
-            // 3. Starting down, target is upright
-            // **** Frontflip, no pass
-            FlipType outOfDrillDown = new FlipType {forward = true, passOnce = false, intoDrill = false};
-            // 4. Starting up, target is upright
-            // **** Backflip, pass once
-            // FlipType outOfDrillUp = new FlipType {forward = false, passOnce = true, intoDrill = false};
-            FlipType outOfDrillUp = new FlipType {forward = true, passOnce = false, intoDrill = false};
-            // FlipType outOfDrillUp = new FlipType {forward = false, passOnce = true, intoDrill = false};
-
-            if (enterDrill)
-            {
-                // TODO: To enable flips into drill, delete this line
-                if (TargetAerialPitchAngle() > 90f)
-                {
-                    Flipping = true;
-                    currentFlipType = intoDrillDown;
-                    // Debug.Log("Into drill down");
-                }
-                else
-                {
-                    Flipping = true;
-                    currentFlipType = intoDrillUp;
-                    // Debug.Log("Into drill up");
-                }
-            }
-            else
-            {
-                if (currentPitch > 90f)
-                {
-                    Flipping = true;
-                    currentFlipType = outOfDrillDown;
-                    // Debug.Log("Out of drill down");
-                }
-                else
-                {
-                    Flipping = true;
-                    currentFlipType = outOfDrillUp;
-                    // Debug.Log("Out of drill up");
-                }
-            }
-           
-            // Flip should end when the pitch was previously "behind" the target, and is now "in front of" the target
-            // (behind or in front is a notion dependent on the flip direction)
-            
-        }
-
-        private void UpdateBlast()
-        {
-        }
-
-        private void UpdateFlip()
-        {
-            float endPitchTarget;
-            
-            if (currentFlipType.intoDrill)
-            {
-                endPitchTarget = TargetAerialPitchAngle() + 360;
-            }
-            else
-            {
-                endPitchTarget = uprightPitch + 360;
-            }
-
-            // If we're flipping into drilling, we want to end on the target pitch. Otherwise, we end on zero
-            // if (currentFlipType.intoDrill) endPitchTarget += TargetAerialPitchAngle();
-            float pitchRange;
-            
-            // Add or subtract 360 from the target pitch if we're passing once
-            // if (currentFlipType.passOnce)
-            if (!currentFlipType.forward)
-            {
-                pitchRange = endPitchTarget + flipStartPitch;
-            }
-            else
-            {
-                pitchRange = endPitchTarget - flipStartPitch;
-            }
-            
-            // float pitchRange = endPitchTarget - flipStartPitch;
-
-            if (currentFlipType.forward)
-            {
-                currentPitch = (flipStartPitch + pitchRange * flipProgress) % 360f;
-            }
-            else
-            {
-                currentPitch = (flipStartPitch - pitchRange * flipProgress) % 360f;
-            }
-            
-            // Update animation
-            banditAnimationController.UpdateFlipProgress(flipProgress);
-            
-
-        }
-
         private Quaternion AerialPitch()
         {
-            if (!Flipping)
-            {
                 // Don't update pitch if we're blasting
                 if (!blasting)
                 {
@@ -381,11 +224,6 @@ namespace __OasisBlitz.Player
                         currentPitch = TargetAerialPitchAngle();
                     }
                 }
-            }
-            else
-            {
-                UpdateFlip();
-            }
             
             // Vector3 right = transform.TransformDirection(transform.right);
             // return Quaternion.Euler(0, 0, currentPitch);
@@ -490,18 +328,51 @@ namespace __OasisBlitz.Player
             
         }
         
-        /// <summary>
-        /// Rotate yaw-wise around the center of mass
-        /// </summary>
-        // private void YawAroundCoM()
-        // {
-        //     // First, get desired yaw angle
-        //     // We want the shortest angle between the velocity and the current rotation
-        //     var desiredYawAngle = Vector3.SignedAngle(new Vector3(-1, 0, 0), playerPhysics.Velocity, Vector3.up);
-        //     
-        //     // Now, apply it around the center of mass
-        //     transform.RotateAround(centerOfMass.position, Vector3.up, desiredYawAngle);
-        // }
+        //Bandit Visability
+        public void HideBandit()
+        {
+            foreach (var characterComp in ModelComponents)
+            {
+                if (characterComp)
+                {
+                    characterComp.SetActive(false);
+                }
+            }
+        }
+        
+        public void RevealBandit()
+        {
+            foreach (var characterComp in ModelComponents)
+            {
+                if (characterComp)
+                {
+                    characterComp.SetActive(true);
+                }
+            }
+        }
+
+        // Bandit flash
+        public void BanditDeathModelSequence()
+        {
+            StartCoroutine(BanditFlash());
+        }
+        private IEnumerator BanditFlash()
+        {
+            List<Material> orgMats = new List<Material>();
+            foreach (var characterComp in ModelComponents)
+            {
+                var meshRenderer = characterComp.GetComponent<SkinnedMeshRenderer>();
+                orgMats.Add(meshRenderer.material);
+                meshRenderer.material = BanditWhite;
+            }
+            yield return new WaitForSeconds(0.35f);
+            for (int i = 0; i < ModelComponents.Count; i++)
+            {
+                var meshRenderer = ModelComponents[i].GetComponent<SkinnedMeshRenderer>();
+                meshRenderer.material = orgMats[i];
+            }
+            HideBandit();
+        }
         
     }
 }

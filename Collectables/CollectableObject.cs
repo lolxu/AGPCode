@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using __OasisBlitz.Player;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -64,8 +65,9 @@ namespace __OasisBlitz.__Scripts.Collectables
             if (canInteractAgain)
             {
                 canInteractAgain = false;
-                OnInteract();
+                // OnInteract();
                 
+                /*
                 transform.DOScale(transform.localScale * 1.5f, 0.2f).SetEase(Ease.InOutExpo).SetLoops(2, LoopType.Yoyo).OnComplete(() =>
                 {
                     canInteractAgain = true;
@@ -74,7 +76,14 @@ namespace __OasisBlitz.__Scripts.Collectables
                         OnPlaced();
                     }
                 });
+                */
+                OnPlaced();
             }
+        }
+
+        public void PlaceInBurrow()
+        {
+            OnPlaced();
         }
 
         public void CollectSequence()

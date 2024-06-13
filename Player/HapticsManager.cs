@@ -109,7 +109,7 @@ public class HapticsManager : MonoBehaviour
     public void StartDrillHaptic()
     {
         if (!HapticsEnabled) { return; }
-        HapticPatterns.PlayConstant(DrillHapticAmplitude, DrillHapticFrequency, 9999.0f);
+        HapticPatterns.PlayConstant(DrillHapticAmplitude, DrillHapticFrequency, 10f);
         Below = true;
     }
     

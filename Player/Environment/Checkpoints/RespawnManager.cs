@@ -27,6 +27,8 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Checkpoints
         private PlayerStateMachine ctx;
         private GameObject currentCheckpoint;
         private Dictionary<String, CheckPoint> mapOfCurrentCheckpoints;
+        
+        [SerializeField] private LevelNames _levelNames;
 
         private void Awake()
         {
@@ -42,30 +44,34 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Checkpoints
             
             mapOfCurrentCheckpoints = new Dictionary<String, CheckPoint>();
             listOfCurrentCheckpoints = new List<GameObject>();
-            ctx = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerStateMachine>();
 
-            currentCheckpoint = null;
-
-            GameMetadataTracker.Instance.InitializeCheckpointsForScene(SceneManager.GetActiveScene().name);
-            
-            InitializeCheckpoints();
-
-            // Set player to the latest checkpoint position if there is one
-            KeyValuePair<Vector3, Vector3> spawnPos = Respawn();
-            
-            Debug.Log("Setup Respawn Manager");
-            
-            if (spawnPos.Key != Vector3.zero)
+            if (GameObject.FindGameObjectWithTag("Player") != null)
             {
-                ctx.CurrentState.RespawnCharacter(spawnPos);
-                if (OnInitialSpawn != null)
+                ctx = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerStateMachine>();
+
+                currentCheckpoint = null;
+
+                GameMetadataTracker.Instance.InitializeCheckpointsForScene(SceneManager.GetActiveScene().name);
+            
+                InitializeCheckpoints();
+
+                // Set player to the latest checkpoint position if there is one
+                KeyValuePair<Vector3, Vector3> spawnPos = Respawn();
+            
+                Debug.Log("Setup Respawn Manager");
+            
+                if (spawnPos.Key != Vector3.zero)
                 {
-                    OnInitialSpawn();
+                    ctx.CurrentState.RespawnCharacter(spawnPos);
+                    if (OnInitialSpawn != null)
+                    {
+                        OnInitialSpawn();
+                    }
                 }
-            }
-            else
-            {
-                Debug.LogError("No last positions");
+                else
+                {
+                    Debug.LogError("No last positions");
+                }
             }
         }
 

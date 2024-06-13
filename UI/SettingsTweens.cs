@@ -10,14 +10,19 @@ public class SettingsTweens : MonoBehaviour
     [Header("Tween Settings")]
     [SerializeField] private float tweenDuration;
     // Tweens
+    public Tween settingsTween { get; private set; }
+    private Sequence settingsSeq;
+
     public Tween controlsTween { get; private set; }
     public Tween displayTween { get; private set; }
     public Tween soundTween { get; private set; }
-    
-    [SerializeField] private float controlsDestination, displayDestination, soundDestination;
+
+    [SerializeField] private float settingsDestination, controlsDestination, displayDestination, soundDestination;
+    private float settingsDistanceToMove = 1500;   // Main settings interface -- same as main Pause interface
     private float distanceToMove = 1500;
 
     [Header("Settings Interfaces")]
+    [SerializeField] private GameObject SettingsInterface;
     [SerializeField] private GameObject ControlsInterface;
     [SerializeField] private GameObject DisplayInterface;
     [SerializeField] private GameObject SoundInterface;
@@ -28,11 +33,104 @@ public class SettingsTweens : MonoBehaviour
     [SerializeField] private Button SoundButton;
 
     [Header("First Buttons")]
+    // [SerializeField] private Button FirstSettingsButton;
     [SerializeField] private Button FirstControlsButton;
     [SerializeField] private Button FirstDisplayButton;
     [SerializeField] private Button FirstSoundButton;
 
+    [Header("Highlights")]
+    [SerializeField] private GameObject ControlsButtonHighlight;
+    [SerializeField] private GameObject DisplayButtonHighlight;
+    [SerializeField] private GameObject SoundButtonHighlight;
 
+    public void SlideSettingsIn(Action DoAfter = null)
+    {
+        SettingsInterface.transform.localPosition = new Vector2(settingsDestination-settingsDistanceToMove, SettingsInterface.transform.localPosition.y);
+        SettingsInterface.SetActive(true);
+        ControlsInterface.SetActive(true);
+        ControlsButtonHighlight.SetActive(true);
+        // main settings interface & controls (bc controls is first)?
+        settingsSeq = DOTween.Sequence();
+
+        settingsSeq.Append(SettingsInterface.transform.DOLocalMoveX(settingsDestination, tweenDuration))
+            .Join(ControlsInterface.transform.DOLocalMoveX(controlsDestination, tweenDuration))
+            .SetUpdate(true)
+            .OnComplete(() =>
+            {
+                if (DoAfter != null)
+                {
+                    DoAfter();
+                }
+                // FirstControlsButton first to set the navigation for the main settings buttons
+                FirstControlsButton.Select();
+                ControlsButton.Select();
+            });
+            
+    }
+    public void SlideSettingsOut(Action DoAfter = null)
+    {
+        SettingsInterface.transform.localPosition = new Vector2(settingsDestination, SettingsInterface.transform.localPosition.y);
+        SettingsInterface.SetActive(true);
+
+        /*        if (settingsTween != null) { settingsTween.Kill(false); }
+                settingsTween = SettingsInterface.transform.DOLocalMoveX(settingsDestination-settingsDistanceToMove, tweenDuration)
+                    .OnComplete(() =>
+                    {
+                        if(DoAfter != null)
+                        {
+                            DoAfter();
+                        }
+                    })
+                    .SetUpdate(true);*/
+
+        // Slide out settings & the active interface
+        settingsSeq = DOTween.Sequence();
+        if(ControlsInterface.activeInHierarchy)
+        {
+            settingsSeq.Append(ControlsInterface.transform.DOLocalMoveX(controlsDestination + distanceToMove, tweenDuration))
+                .Join(SettingsInterface.transform.DOLocalMoveX(settingsDestination - settingsDistanceToMove, tweenDuration))
+                .SetUpdate(true)
+                .OnComplete(() =>
+                {
+                    if (DoAfter != null)
+                    {
+                        DoAfter();
+                        ControlsInterface.SetActive(false);
+                        ControlsButtonHighlight.SetActive(false);
+                    }
+                });
+        }
+        else if(DisplayInterface.activeInHierarchy)
+        {
+            settingsSeq.Append(DisplayInterface.transform.DOLocalMoveX(displayDestination + distanceToMove, tweenDuration))
+                .Join(SettingsInterface.transform.DOLocalMoveX(settingsDestination - settingsDistanceToMove, tweenDuration))
+                .SetUpdate(true)
+                .OnComplete(() =>
+                {
+                    if (DoAfter != null)
+                    {
+                        DoAfter();
+                        DisplayInterface.SetActive(false);
+                        DisplayButtonHighlight.SetActive(false);
+                    }
+                });
+        }
+        else if (SoundInterface.activeInHierarchy)
+        {
+            settingsSeq.Append(SoundInterface.transform.DOLocalMoveX(soundDestination + distanceToMove, tweenDuration))
+                .Join(SettingsInterface.transform.DOLocalMoveX(settingsDestination - settingsDistanceToMove, tweenDuration))
+                .SetUpdate(true)
+                .OnComplete(() =>
+                {
+                    if (DoAfter != null)
+                    {
+                        DoAfter();
+                        SoundInterface.SetActive(false);
+                        SoundButtonHighlight.SetActive(false);
+                    }
+                });
+        }
+    }
     public void SlideControlsIn()
     {
         ControlsInterface.SetActive(true);
@@ -46,7 +144,7 @@ public class SettingsTweens : MonoBehaviour
     }
     public void SlideControlsOut(Action callback)
     {
-        if(controlsTween != null) { controlsTween.Kill(false); }
+        if (controlsTween != null) { controlsTween.Kill(false); }
         controlsTween = ControlsInterface.transform.DOLocalMoveX(controlsDestination+distanceToMove, tweenDuration)
             .OnComplete(() =>
             {

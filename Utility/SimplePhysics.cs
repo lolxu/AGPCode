@@ -72,6 +72,7 @@ namespace __OasisBlitz.Utility
 
         public void ApplyGravity(Vector3 gravity, float maxResultantYSpeed = 1000)
         {
+            bool gravityIsDown = gravity.y < 0;
             
             float ySpeedBeforeAdd = currentVelocity.y;
             
@@ -81,30 +82,36 @@ namespace __OasisBlitz.Utility
             
             // If this addition put you over the maximum speed that source is allowed to give, we will have 
             // to clamp it
-            if (ySpeedAfterAdd > maxResultantYSpeed)
+            if (ySpeedAfterAdd > maxResultantYSpeed && !gravityIsDown)
+            // if (ySpeedAfterAdd > maxResultantYSpeed)
             {
                 // If the speed you already had was greater than the maximum speed, we set you back to the 
                 // speed you were at
                 if (ySpeedBeforeAdd > maxResultantYSpeed)
                 {
                     currentVelocity.y = ySpeedBeforeAdd;
+                    // Debug.Log("FORCING Y SPEED TO PRIOR SPEED " + ySpeedBeforeAdd);
                 }
                 // Otherwise, we set you to the maximum speed from this source
                 else
                 {
                     currentVelocity.y = maxResultantYSpeed;
+                    // Debug.Log("CLAMPING Y SPEED TO " + maxResultantYSpeed);
                 }
             }
-            else if (ySpeedAfterAdd < maxResultantYSpeed * -1)
+            else if (ySpeedAfterAdd < maxResultantYSpeed * -1 && gravityIsDown)
+            // else if (ySpeedAfterAdd < maxResultantYSpeed * -1)
             {
                 if (ySpeedBeforeAdd < maxResultantYSpeed * -1)
                 {
                     currentVelocity.y = ySpeedBeforeAdd;
+                    // Debug.Log("FORCING Y SPEED TO PRIOR SPEED " + ySpeedBeforeAdd);
                 }
                 // Otherwise, we set you to the maximum speed from this source
                 else
                 {
                     currentVelocity.y = maxResultantYSpeed * -1;
+                    // Debug.Log("CLAMPING Y SPEED TO " + maxResultantYSpeed * -1);
                 }
                 
             }

@@ -11,6 +11,8 @@ using UnityEngine.UI;
 
 public class LoadingScreen : MonoBehaviour
 {
+    public static LoadingScreen Instance;
+
     [SerializeField] private Canvas LoadScreenCanvas;
 
     [SerializeField] private GameObject LoadScreen;
@@ -19,16 +21,15 @@ public class LoadingScreen : MonoBehaviour
     [SerializeField] private TextMeshProUGUI[] loadingText;
     [SerializeField] private Slider progressBarFill;
 
-    private bool MainMenuFirstLoad = false;
-
-    // Loading Scene: https://www.youtube.com/watch?v=wvXDCPLO7T0
+    // Loading Scene no longer used
     public void LoadScene(string sceneName)
     {
         wipe.WipeRight(() => {
             //LoadScreen.SetActive(true);
             if (!(SceneManager.GetActiveScene().name == "MainMenu")
                && !(SceneManager.GetActiveScene().name == "Slideshow")
-               && !(SceneManager.GetActiveScene().name == "EndSlideshow"))
+               && !(SceneManager.GetActiveScene().name == "EndSlideshow")
+               && !(SceneManager.GetActiveScene().name == "MainMenuToSteal"))
             {
                 PlayerStateMachine ctx = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerStateMachine>();
                 if (ctx)
@@ -45,7 +46,7 @@ public class LoadingScreen : MonoBehaviour
     public void LoadCurrentScene()
     {
         // LoadScene(SceneManager.GetActiveScene().name);
-        LevelManager.Instance.LoadAnySceneAsync(SceneManager.GetActiveScene().name);
+        LevelManager.Instance.LoadAnySceneAsync(SceneManager.GetActiveScene().name, false);
     }
     private IEnumerator LoadSceneAsync(string sceneName)
     {
@@ -59,7 +60,6 @@ public class LoadingScreen : MonoBehaviour
         }
 
         AsyncOperation op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
-
         while (!op.isDone)
         {
             //float progress = Mathf.Clamp01(op.progress / 0.9f);
@@ -68,7 +68,7 @@ public class LoadingScreen : MonoBehaviour
             yield return null;
         }
         // LoadScreen.SetActive(false);
-        Debug.Log("LoadingScreen --> ClearRight");
+        //Debug.Log("LoadingScreen --> ClearRight");
         wipe.ClearRight();
     }
 
@@ -85,12 +85,25 @@ public class LoadingScreen : MonoBehaviour
     }
     private void Awake()
     {
-        if(GameObject.Find("LoadScreenCanvas") != null && GameObject.Find("LoadScreenCanvas") != this) { Destroy(this.gameObject); }
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        DontDestroyOnLoad(this.gameObject);
+        // if(GameObject.Find("LoadScreenCanvas") != null && GameObject.Find("LoadScreenCanvas") != this) { Destroy(this.gameObject); }
+
+        if(Instance != null && Instance != this)
+        {
+            Destroy(this.gameObject);
+        }
+        else
+        {
+            Instance = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+
     }
 
-    private void OnDestroy()
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+    private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }

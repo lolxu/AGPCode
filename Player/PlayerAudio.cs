@@ -1,7 +1,13 @@
+using System;
+using System.Collections;
 using __OasisBlitz.Player.Physics;
+using __OasisBlitz.Player.StateMachine;
+using FMOD.Studio;
+using FMODUnity;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Debug = FMOD.Debug;
+using STOP_MODE = FMOD.Studio.STOP_MODE;
 
 
 namespace __OasisBlitz.Player
@@ -14,8 +20,10 @@ namespace __OasisBlitz.Player
         private FMOD.Studio.PARAMETER_ID drillEndID;
         
         //[SerializeField] private FMODUnity.EventReference walkEvent;
-        FMOD.Studio.EventInstance walkEventInstance;
-        FMOD.Studio.EventInstance slideEventInstance;
+        private FMOD.Studio.PARAMETER_ID globalSurfaceParameterId;
+        private FMOD.Studio.EventInstance slideEventInstance;
+        private Coroutine slideRoutine;
+        [SerializeField] private PlayerStateMachine Ctx;
         
         [SerializeField] private FMODUnity.EventReference sandImpactEvent;
         
@@ -35,52 +43,40 @@ namespace __OasisBlitz.Player
         [SerializeField] private FMODUnity.EventReference stickInBounceEvent;
 
         public bool paused { get; private set; }
-        
         public bool sliding { get; private set; }
-        public bool walking { get; private set; }   // Private get for UIManager
-
-        private const float walkSpeedHighMin = 14f;
-        
-        private const float walkSpeedLowMin = 1f;
         
         public bool bDrillSoundDisabled = false;
-        
-        public void StartWalk()
+
+        private void OnEnable()
         {
-            walkEventInstance = AudioManager.instance.CreateEventInstance(FMODEvents.instance.walk, this.transform);
-            walkEventInstance.start();
-            walking = true;
-        }
-        public void StopWalk()
-        {
-            walkEventInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-            walking = false;
+            slideEventInstance =  RuntimeManager.CreateInstance(FMODEvents.instance.slide);
+            FMODUnity.RuntimeManager.StudioSystem.getParameterDescriptionByName("FootStepMat", out PARAMETER_DESCRIPTION walkParameterDescription);
+            globalSurfaceParameterId = walkParameterDescription.id;
         }
 
-        public void StartWalkFromPause()
+        private void OnDisable()
         {
-            if (walking)
-            {
-                walkEventInstance = AudioManager.instance.CreateEventInstance(FMODEvents.instance.walk, this.transform);
-                walkEventInstance.start();
-            }
-            paused = false;
+            slideEventInstance.stop(STOP_MODE.IMMEDIATE);
+            slideEventInstance.release();
         }
-        
-        public void StopWalkFromPause()
-        {
-            walkEventInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-            paused = true;
-        }
-        
+
         public void StartSlide()
         {
-            slideEventInstance = AudioManager.instance.CreateEventInstance(FMODEvents.instance.slide, this.transform);
+            if (slideRoutine != null)
+            {
+                StopCoroutine(slideRoutine);
+            }
+            slideRoutine = StartCoroutine(updateSlide());
             slideEventInstance.start();
             sliding = true;
         }
         public void StopSlide()
         {
+            if (slideRoutine != null)
+            {
+                StopCoroutine(slideRoutine);
+                slideRoutine = null;
+            }
             slideEventInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
             sliding = false;
         }
@@ -89,7 +85,6 @@ namespace __OasisBlitz.Player
         {
             if (sliding)
             {
-                slideEventInstance = AudioManager.instance.CreateEventInstance(FMODEvents.instance.slide, this.transform);
                 slideEventInstance.start();
             }
             paused = false;
@@ -101,54 +96,62 @@ namespace __OasisBlitz.Player
             paused = true;
         }
 
-        public void PlayFootstep(PlayerPhysics.OnSurfaceType surfaceType)
+        private IEnumerator updateSlide()
         {
-            switch (surfaceType)
+            while (true)
+            {
+                if (!paused)
+                {
+                    if (Ctx.InWaterTrigger)
+                    {
+                        RuntimeManager.StudioSystem.setParameterByID(globalSurfaceParameterId, 2f);
+                    }
+                    else
+                    {
+                        switch (Ctx.PlayerPhysics.CurrentOnSurfaceType)
+                        {
+                            case PlayerPhysics.OnSurfaceType.Penetrable:
+                                RuntimeManager.StudioSystem.setParameterByID(globalSurfaceParameterId, 0f);
+                                break;
+                            case PlayerPhysics.OnSurfaceType.NotPenetrable:
+                                // TODO: You're on rock
+                                RuntimeManager.StudioSystem.setParameterByID(globalSurfaceParameterId, 1f);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    RuntimeManager.AttachInstanceToGameObject(slideEventInstance, transform);
+                }
+                yield return null;
+            }
+        }
+
+        public void PlayFootstep()
+        {
+            if (Ctx.InWaterTrigger)
+            {
+                RuntimeManager.StudioSystem.setParameterByID(globalSurfaceParameterId, 2f);
+                RuntimeManager.PlayOneShot(FMODEvents.instance.footstep, transform.position);
+                return;
+            }
+            switch (Ctx.PlayerPhysics.CurrentOnSurfaceType)
             {
                 case PlayerPhysics.OnSurfaceType.Penetrable:
-                    AudioManager.instance.PlayOneShot(FMODEvents.instance.footstepSand, transform.position);
+                    RuntimeManager.StudioSystem.setParameterByID(globalSurfaceParameterId, 0f);
+                    RuntimeManager.PlayOneShot(FMODEvents.instance.footstep, transform.position);
                     break;
                 case PlayerPhysics.OnSurfaceType.NotPenetrable:
                     // TODO: You're on rock
-                    AudioManager.instance.PlayOneShot(FMODEvents.instance.footstepSand, transform.position);
-                    break;
-                case PlayerPhysics.OnSurfaceType.Slide:
-                    // This case can be ignored for footsteps, this is a surface that forces you to slide
-                    // So you should never make footsteps
+                    RuntimeManager.StudioSystem.setParameterByID(globalSurfaceParameterId, 1f);
+                    RuntimeManager.PlayOneShot(FMODEvents.instance.footstep, transform.position);
                     break;
                 case PlayerPhysics.OnSurfaceType.NotGrounded:
                     // This case can be ignored for footsteps
                     break;
                 default:
                     break;
-                
             }
-        }
-
-        public void StopWalkImmediate()
-        {
-            walkEventInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
-            walking = false;
-        }
-        public void UpdateWalkAudio(float speed)
-        {
-            if (!walking || paused) return;
-            
-            if (speed > walkSpeedHighMin)
-                walkEventInstance.setParameterByName("WalkSpeed", 1.0f);
-            else if (speed > walkSpeedLowMin)
-            {
-                walkEventInstance.setParameterByName("WalkSpeed", 0.3f);
-            }
-            else
-            {
-                walkEventInstance.setParameterByName("WalkSpeed", 0f);
-            }
-        }
-        
-        public void SetWalkSpeed(float speed)
-        {
-            walkEventInstance.setParameterByName("WalkSpeed", speed);
         }
 
         public void PlayFormDrill()
@@ -192,7 +195,8 @@ namespace __OasisBlitz.Player
 
         public void StopDrill()
         {
-            drillEventInstance.setParameterByID(drillEndID, 1.0f);
+            // drillEventInstance.setParameterByID(drillEndID, 1.0f);
+            drillEventInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
         }
 
         public void SetSubmerged(bool submerged)
@@ -259,6 +263,21 @@ namespace __OasisBlitz.Player
         public void PlayDeathSound()
         {
             AudioManager.instance.PlayOneShot(playerDeathEvent, transform.position);
+        }
+
+        public void PlayJump()
+        {
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.jump, transform.position);
+        }
+
+        public void PlayLand()
+        {
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.land, transform.position);
+        }
+
+        public void PlaySplashSound()
+        {
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.splash, transform.position);
         }
         /*
         public void StartBoost()

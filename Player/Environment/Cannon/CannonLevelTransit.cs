@@ -18,6 +18,7 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
         private bool bLockPlayerToCannon = false;
         private Sequence LaunchSequence = null;
         
+        
         protected override void KillCannonSequence()
         {
             bLockPlayerToCannon = false;
@@ -31,33 +32,20 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
          */
         public void SceneSelected()
         {
+            bCanEnterCannon = false;
+            
             LaunchSequence = DOTween.Sequence();
             
             // rest of this sequence happens when level is selected (register to callbacks on level select
             LaunchSequence.AppendCallback(OnLaunchCannonAction);
             
             // launch animation
-            LaunchSequence.Append(
-                scalePoint.transform.DOScaleY(initialScaleY * .2f,
-                    (7 * buildUpTime) / 8.0f).SetEase(Ease.OutCubic).OnComplete(() =>
-                    scalePoint.transform.DOScaleY(initialScaleY, buildUpTime / 8.0f).SetEase(Ease.InOutCubic)));
-            // have player pos match 
-            bLockPlayerToCannon = false;
-            LaunchSequence.Join(DOTween.To(() => ctx.CharacterController.transform.position,
-                x => ctx.CharacterController.SetPosition(exitPoint.transform.position),
-                exitPoint.transform.position,
-                buildUpTime));
+            CannonLaunchAnimation();
 
             // actual launch code
             LaunchSequence.AppendCallback(ExitCannon);
-            // re-enable the cannon to use it again after a little
-            LaunchSequence.Append(DOVirtual.DelayedCall(.5f, () => OnPostExitCannon(), false));
 
-            // do not lock player to cannon if reset, reset collider and scale
-            LaunchSequence.OnKill(() =>
-            {
-                ResetCannon();
-            });
+            _dash.DashEnabled = true;
         }
         
         public void KickPlayerOutOfCannon()
@@ -90,7 +78,7 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
             CannonSequence.AppendCallback(InitializePlayerAndCannon);
             CannonSequence.AppendCallback(() =>
             {
-                levelInterface.GetComponent<BurrowLevelInterface>().OpenLevelSelectInterface();
+                levelInterface.GetComponent<BurrowLevelSelect>().OpenLevelSelectInterface();
                 bLockPlayerToCannon = true;
                 StartCoroutine(LockPlayerToCannonDuringSelect());
             });
@@ -112,34 +100,12 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Cannon
         protected override void OnLaunchCannonAction()
         {
             ctx.ToggleDrill = true;
-            // ctx.ToggleJump = true;
-            CameraStateMachine.Instance.freeLookCam.gameObject.SetActive(false);
-            // TODO Maybe add a special camera here later
-            // GameObject panCam = GameObject.FindGameObjectWithTag("PanCamera");
-            // if (panCam)
-            // {
-            //     CinemachineCamera levelPanCam = panCam.GetComponent<CinemachineCamera>();
-            //     levelPanCam.gameObject.SetActive(true);
-            // }
-            HUDManager.Instance.GetSceneTransitionImage().DOFade(1.0f, LevelManager.Instance.m_transitionDuration)
-                .SetEase(Ease.InOutSine)
-                .OnComplete(
-                    () =>
-                    {
-                        LevelManager.Instance.LoadAnySceneAsync(Cannon.loadSceneName);
-                    });
-        }
+            
 
-        protected override void PostExitCannonAction()
-        {
-            // Using Tween?
-            // HUDManager.Instance.GetSceneTransitionImage().DOFade(1.0f, LevelManager.Instance.m_transitionDuration)
-            //     .SetEase(Ease.InOutSine)
-            //     .OnComplete(
-            //         () =>
-            //         {
-            //             LevelManager.Instance.LoadAnySceneAsync(m_sceneName);
-            //         });
+            CameraStateMachine.Instance.freeLookCam.gameObject.SetActive(false);
+
+            LevelManager.Instance.LoadAnySceneAsync(Cannon.loadSceneName, false);
+            
         }
     }
 }

@@ -8,7 +8,7 @@ using UnityEngine.Splines.Interpolators;
 
 namespace __OasisBlitz.Player.Physics
 {
-    public class PlayerPhysics : MonoBehaviour
+    public class PlayerPhysics : DrillDirection
     {
         public enum GravityMode
         {
@@ -143,8 +143,6 @@ namespace __OasisBlitz.Player.Physics
         public bool IncreaseDownHillRunningAcceleration = false;
         [Range(0.0f, 1.0f)] [SerializeField] private float minimumDownhillDragFactor = 0.1f;
 
-
-
         void Awake()
         {
             gravityValues = new float[8];
@@ -189,7 +187,22 @@ namespace __OasisBlitz.Player.Physics
         
         public Vector3 Velocity
         {
-            get => physicsSolver.AppliedVelocity;
+            get
+            {
+                if (physicsSolver != null)
+                {
+                    return physicsSolver.AppliedVelocity;
+                }
+                else
+                {
+                    return Vector3.zero;
+                }
+            }
+        }
+
+        public override Vector3 GetDrillDirection()
+        {
+            return Velocity;
         }
 
         /// <summary>
@@ -255,6 +268,11 @@ namespace __OasisBlitz.Player.Physics
             velocityUponUnstuck = velocityWhenUnstuck;
             SetVelocity(Vector3.zero);
             physicsSolver.UpdateVelocity();
+        }
+
+        public void SetUnStuck()
+        {
+            this.isStuckTimer = 0.0f;
         }
 
         public bool CheckBlitzSpeed()
@@ -381,6 +399,7 @@ namespace __OasisBlitz.Player.Physics
                     else
                     {
                         physicsSolver.ApplyGravity(gravity, terminalYVelocityFromGravity);
+                        // Debug.Log("Applying gravity value " + gravity);
                     }
                     
                 }
@@ -413,6 +432,7 @@ namespace __OasisBlitz.Player.Physics
             Acceleration = (physicsSolver.CurrentVelocity - previousVelocity) / deltaTime;
 
             // Debug.Log("PLAYER VELOCITY: " + physicsSolver.CurrentVelocity.magnitude);
+            // Debug.Log("PLAYER VELOCITY: " + physicsSolver.CurrentVelocity);
             
         }
 

@@ -1,8 +1,12 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.Remoting.Messaging;
 using __OasisBlitz.__Scripts.Player.Environment.Checkpoints;
+using __OasisBlitz.Player;
 using __OasisBlitz.Player.StateMachine;
+using __OasisBlitz.Utility;
+using Sirenix.Utilities;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,12 +18,13 @@ namespace __OasisBlitz.Camera.StateMachine.Subroutines
     {
         [Header("Pan Camera Settings")]
         public CameraStateMachine Ctx;
-        private SplineContainer levelStartDolly;
+        private SplineContainer currentDolly;
         private SplineContainer plantCollectionDolly;
+        
+        private CinematicsType currentCinematics;
 
-        private Animator panAnim;
-        private CinemachineSplineDolly myDolly;
-
+        public static Action DrillDownOver;
+        
         private void Awake()
         {
             SceneManager.sceneLoaded += HideBandit;
@@ -27,176 +32,249 @@ namespace __OasisBlitz.Camera.StateMachine.Subroutines
 
         private void HideBandit(Scene arg0, LoadSceneMode arg1)
         {
-            foreach (var characterComp in Ctx.playerStateMachine.ModelComponents)
-            {
-                if (characterComp)
-                {
-                    characterComp.SetActive(false);
-                }
-            }
-        }
-
-        private void Start()
-        {
-            if (Ctx.cinematicsCam)
-            {
-                // Debug.Log("Here");
-                myDolly = Ctx.cinematicsCam.gameObject.GetComponent<CinemachineSplineDolly>();
-                panAnim = Ctx.cinematicsCam.gameObject.GetComponent<Animator>();
-            }
+            //Hide Bandit Model
+            Ctx.playerStateMachine.ModelRotator.HideBandit();
         }
 
         /// <summary>
         /// Function to play camera cinematics
         /// </summary>
-        /// <param name="type"> 0 = Level Start Camera Dolly; 1 = Plant Collection Camera Dolly</param>
+        /// <param name="type"> Use the enum bruh </param>
         /// <returns></returns>
-        public IEnumerator CinematicsCameraRoutine(int type)
+        public IEnumerator CinematicsCameraRoutine(CinematicsType type)
         {
             yield return null;
-
-            levelStartDolly = null;
-            plantCollectionDolly = null;
-            var startDolly = GameObject.FindWithTag("StartLevelDolly");
-            var plantDolly = GameObject.FindWithTag("PlantDolly");
+            currentCinematics = type;
+            
+            var startDollies = GameObject.FindGameObjectsWithTag("StartLevelDolly");
 
             Debug.Log($"Playing Animation type: {type}");
-            
-            if (startDolly)
+            CinemachineSplineDolly cineSpline = Ctx.currentActiveCinematicsCam.GetComponent<CinemachineSplineDolly>();
+
+            switch (type)
             {
-                levelStartDolly = startDolly.GetComponent<SplineContainer>();
-            }
-
-            if (plantDolly)
-            {
-                plantCollectionDolly = plantDolly.GetComponent<SplineContainer>();
-            }
-
-
-            string animationClipName = SceneManager.GetActiveScene().name;
-
-            if (levelStartDolly || plantCollectionDolly)
-            {
-                switch (type)
-                {
-                    case 0:
-                        myDolly.Spline = levelStartDolly;
-                        Ctx.cinematicsCam.GetComponent<CinemachineCamera>().Target.LookAtTarget = null;
-                        Ctx.cinematicsCam.GetComponent<CinemachineCamera>().Target.TrackingTarget = null;
-                        myDolly.CameraRotation = CinemachineSplineDolly.RotationMode.SplineNoRoll;
-                        break;
-                    case 1:
-                        myDolly.Spline = plantCollectionDolly;
-                        Ctx.cinematicsCam.GetComponent<CinemachineCamera>().Target.TrackingTarget =
-                            Ctx.playerStateMachine.gameObject.transform;
-                        Ctx.cinematicsCam.GetComponent<CinemachineCamera>().Target.LookAtTarget =
-                            Ctx.playerStateMachine.gameObject.transform;
-                        myDolly.CameraRotation = CinemachineSplineDolly.RotationMode.Default;
-                        animationClipName += "_Plants";
-                        break;
-                }
-
-                if (Ctx.cinematicsCam && !Ctx.isLoadRestart)
-                {
-                    Debug.Log("Trying tp play animation");
-                    if (panAnim && myDolly.Spline != null)
+                case CinematicsType.StartPan:
+                    if (startDollies.Length > 0)
                     {
-                        Ctx.cinematicsCam.gameObject.SetActive(true);
-                        panAnim.Play(animationClipName);
-                        Debug.Log(animationClipName);
-                        // Wait until camera pan finishes
-                        while (panAnim.GetCurrentAnimatorStateInfo(0).normalizedTime <= 1.0f)
+                        Ctx.currentActiveCinematicsCam.Target.LookAtTarget = null;
+                        Ctx.currentActiveCinematicsCam.Target.TrackingTarget = null;
+                        // Play Cinematics
+                        StartCoroutine(PlayStartingCinematics(startDollies, 2.5f));
+                    }
+                    else
+                    {
+                        StartCoroutine(StartPlayerActions(true));
+                        // Debug.LogError("Start level Cinematics not set");
+                    }
+                    break;
+                
+                case CinematicsType.PlantPan:
+                    cineSpline.Spline = null;
+                    // Ctx.currentActiveCinematicsCam.transform.localPosition = Ctx.freeLookCam.transform.localPosition;
+                    Transform playerTransform = Ctx.playerStateMachine.ModelRotator.transform;
+                    Transform camTransform = Ctx.currentActiveCinematicsCam.transform;
+                    camTransform.position = playerTransform.position;
+                    camTransform.position -= playerTransform.forward * 5.0f;
+                    camTransform.position += new Vector3(0.0f, 1.0f, 0.0f);
+                    // Vector3 pos = camTransform.position;
+                    // pos.y = 2.0f;
+                    // camTransform.position = pos;
+                    
+                    Ctx.currentActiveCinematicsCam.Target.TrackingTarget =
+                        Ctx.playerStateMachine.gameObject.transform;
+                    Ctx.currentActiveCinematicsCam.Target.LookAtTarget =
+                        Ctx.playerStateMachine.gameObject.transform;
+                    
+                    cineSpline.CameraRotation = CinemachineSplineDolly.RotationMode.Default;
+                    
+                    // Setting player to celebrating
+                    Ctx.playerStateMachine.IsCelebrating = true;
+                    
+                    //Debug.Log("Playing plant collection");
+                    Ctx.currentActiveCinematicsCam.gameObject.SetActive(true);
+                    break;
+                
+                case CinematicsType.DeathPan:
+                    cineSpline.Spline = null;
+                    Ctx.currentActiveCinematicsCam.transform.localPosition = Ctx.freeLookCam.transform.localPosition;
+                    Ctx.currentActiveCinematicsCam.Target.TrackingTarget = Ctx.playerStateMachine.gameObject.transform;
+                    Ctx.currentActiveCinematicsCam.Target.LookAtTarget = Ctx.playerStateMachine.gameObject.transform;
+                    Ctx.currentActiveCinematicsCam.gameObject.SetActive(true);
+
+                    StartCoroutine(BackToNormal());
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private IEnumerator BackToNormal()
+        {
+            yield return new WaitForSeconds(2.0f);
+
+            StartCoroutine(StartPlayerActions(true));
+        }
+
+        private IEnumerator PlayStartingCinematics(GameObject[] startDollies, float timeForCinematics)
+        {
+            // For multiple cinematics cameras and lookats
+            GameObject[] lookAtTargets = GameObject.FindGameObjectsWithTag("SetPiece");
+            
+            Array.Sort(lookAtTargets, (a, b) => a.name.CompareTo(b.name));
+            Array.Sort(startDollies, (a, b) => a.name.CompareTo(b.name));
+            
+            Debug.Log("Set Piece Count: " + lookAtTargets.Length);
+            
+            for (int i = 0; i < startDollies.Length; i++)
+            {
+                GameObject dolly = startDollies[i];
+                currentDolly = dolly.GetComponent<SplineContainer>();
+                CinemachineSplineDolly currentCSD = Ctx.currentActiveCinematicsCam.GetComponent<CinemachineSplineDolly>();
+                currentCSD.Spline = currentDolly;
+                
+                GameObject curLookTarget = null;
+                if (i < lookAtTargets.Length)
+                {
+                    curLookTarget = lookAtTargets[i];
+                    Ctx.currentActiveCinematicsCam.Target.LookAtTarget = curLookTarget.transform;
+                    Ctx.currentActiveCinematicsCam.Target.TrackingTarget = curLookTarget.transform;
+                    currentCSD.CameraRotation = CinemachineSplineDolly.RotationMode.Default;
+                }
+                else
+                {
+                    Debug.Log("No Look At Target");
+                    Ctx.currentActiveCinematicsCam.Target.LookAtTarget = null;
+                    Ctx.currentActiveCinematicsCam.Target.TrackingTarget = null;
+                    currentCSD.CameraRotation = CinemachineSplineDolly.RotationMode.SplineNoRoll;
+                }
+                
+                Ctx.currentActiveCinematicsCam.gameObject.SetActive(true);
+                
+                if (Ctx.currentActiveCinematicsCam && !Ctx.isLoadRestart)
+                {
+                    Debug.Log("Trying to play cinematics");
+                    currentCSD.CameraPosition = 1.0f;
+                    if (currentCSD.Spline != null)
+                    {
+                        Ctx.currentActiveCinematicsCam.gameObject.SetActive(true);
+                    
+                        float curTime = 0.0f;
+                        while (curTime < timeForCinematics - 0.1f)
                         {
                             yield return null;
+                            curTime += Time.deltaTime;
+                            // Debug.Log("Time: " + curTime);
+                            // Debug.Log(cinematicsCam_A.gameObject.GetComponent<CinemachineSplineDolly>().CameraPosition);
+                            currentCSD.CameraPosition -= (1.0f / timeForCinematics) * Time.deltaTime;
                         }
                     }
                 }
-                switch (type)
+
+                if (i != startDollies.Length - 1)
                 {
-                    case 0:
-                        StartCoroutine(StartPlayerActions());
-                        break;
-                    case 1:
-                        HUDManager.Instance.ShowHideTimerPanel();
-                        break;
+                    // Do camera cuts here
+                    Ctx.currentActiveCinematicsCam.gameObject.SetActive(false);
+                    Ctx.currentActiveCinematicsCamIndex =
+                        (Ctx.currentActiveCinematicsCamIndex + 1) % Ctx.cinematicsCameras.Count;
+                    Ctx.currentActiveCinematicsCam = Ctx.cinematicsCameras[Ctx.currentActiveCinematicsCamIndex];
+                }
+                else
+                {
+                    Ctx.currentActiveCinematicsCam.gameObject.SetActive(false);
                 }
             }
-            else
+            
+            if (CameraStateMachine.Instance.OnCinematicsOver != null)
             {
-                StartCoroutine(StartPlayerActions());
-                Debug.LogError("Plant collection or Start level Cinematics not set");
+                CameraStateMachine.Instance.OnCinematicsOver();
             }
+
+            StartCoroutine(StartPlayerActions(false));
         }
 
-        public void StopCameraPan()
+        public void StopPlantCollectionCinematics()
         {
-            if (Ctx.cinematicsCam.isActiveAndEnabled)
+            Ctx.playerStateMachine.IsCelebrating = false;
+            StartCoroutine(DrillDownRoutine());
+        }
+
+        private IEnumerator DrillDownRoutine()
+        {
+            //Debug.Log("Drill Down");
+            PlayerStateMachine psm = GameObject.FindWithTag("Player").GetComponent<PlayerStateMachine>();
+            if (psm != null)
             {
-                Debug.Log("Force stop cinematics");
-                StopCoroutine(CinematicsCameraRoutine(0));
-                panAnim.StopPlayback();
-                StartCoroutine(StartPlayerActions());
-                if (myDolly.Spline == plantCollectionDolly)
+                psm.ForceEnterDrillState();
+            }
+            yield return new WaitForSeconds(1.0f);
+            //Call end of drill down action
+            DrillDownOver?.Invoke();
+            //Return control to player
+            PlayerInput playerInput = GameObject.FindWithTag("Player").GetComponent<PlayerInput>();
+            playerInput.EnableCharacterControls();
+            HUDManager.Instance.ShowHideTimerPanel();
+        }
+
+        public void StopCameraPan(bool needsCut)
+        {
+            Debug.Log("Stopping cinematics");
+            if (Ctx.currentActiveCinematicsCam.isActiveAndEnabled)
+            {
+                StopAllCoroutines();
+                
+                StartCoroutine(StartPlayerActions(needsCut));
+                if (currentCinematics == CinematicsType.PlantPan)
                 {
                     HUDManager.Instance.ShowHideTimerPanel();
                 }
+
+                if (currentCinematics == CinematicsType.StartPan)
+                {
+                    if (CameraStateMachine.Instance.OnCinematicsOver != null)
+                    {
+                        CameraStateMachine.Instance.OnCinematicsOver();
+                    }
+                }
             }
         }
 
-        private IEnumerator StartPlayerActions()
+        private IEnumerator StartPlayerActions(bool needsCut)
         {
-            if (Ctx.cinematicsCam && !Ctx.isLoadRestart)
+            if (Ctx.currentActiveCinematicsCam.isActiveAndEnabled)
             {
-                if (Ctx.cinematicsCam)
-                {
-                    Ctx.cinematicsCam.gameObject.SetActive(false);
-                }
-            }
-
-            foreach (var characterComp in Ctx.playerStateMachine.ModelComponents)
-            {
-                characterComp.SetActive(true);
+                Ctx.currentActiveCinematicsCam.gameObject.SetActive(false);
             }
             
+            //Reveal Bandit Model
+            if (needsCut)
+            {
+                Ctx.CameraSurface.GetComponent<CinemachineBrain>().enabled = false;
+                Ctx.CameraSurface.GetComponent<CinemachineBrain>().enabled = true;
+            }
+            
+            Ctx.playerStateMachine.ModelRotator.RevealBandit();
             Ctx.freeLookCam.gameObject.SetActive(true);
-            
-            GameObject startPoint = GameObject.FindGameObjectWithTag("StartPoint");
-            if (startPoint)
-            {
-                startPoint.GetComponent<StartPoint>().DisableStartingPlatform();
-            }
-            
-            yield return null;
-            yield return null;
-            while (Ctx.CameraSurface.GetComponent<CinemachineBrain>().IsBlending)
+
+            if (needsCut)
             {
                 yield return null;
+                yield return null;
+                Ctx.ResetCamera();
             }
-            // Start music
-            // AudioManager.instance.InitializeMusic(FMODEvents.instance.musicMainTheme);
-            // XMLFileManager.Instance.Load();
-            // if (!SceneManager.GetActiveScene().name.Contains("Burrow") && !SceneManager.GetActiveScene().name.Contains("Onboard"))
-            // {
-            //     UIManager.Instance.RestartTime();
-            //     UIManager.Instance.StartTime();  // Logic issue. Needs change
-            //     if (UIManager.Instance.gameObject.GetComponent<Timer>().personalBest > 0.0f)
-            //     {
-            //         UIManager.Instance.DisplayTimer();
-            //     }
-            //     else
-            //     {
-            //         UIManager.Instance.HideTimer();
-            //     }
-            // }
-            //Start adding back the fog
-            // TODO: Uncomment this for the fog thing during pan
-            // RuntimeEnvironmentLighting.Instance.ResetFogValue();
+            
+            GameObject startObj = GameObject.FindGameObjectWithTag("StartPoint");
+            if (startObj != null)
+            {
+                startObj.GetComponent<StartPoint>().DisableStartingPlatform();
+            }
+            
             Ctx.playerStateMachine.ToggleDrill = true;
             Ctx.playerStateMachine.ToggleSlide = true;
             Ctx.playerStateMachine.ToggleWalk = true;
             Ctx.playerStateMachine.ToggleJump = true;
+            Ctx.playerStateMachine.bInvincible = false;
             
-            Ctx.CurrentState.SwitchState(Ctx.CurrentState.Factory.SurfaceDefault());
+            HUDManager.Instance.ToggleAdaptiveHud(GlobalSettings.Instance.controlsHUD);
         }
     }
 }

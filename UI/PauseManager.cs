@@ -15,7 +15,7 @@ using __OasisBlitz.Utility;
 public class PauseManager : MonoBehaviour
 {
     public static PauseManager Instance;
-
+    
     [SerializeField] private Canvas LoadScreenCanvas;
     [SerializeField] private LoadingScreen loadScreen;
     [SerializeField] private PlayerInput pInput;
@@ -23,7 +23,11 @@ public class PauseManager : MonoBehaviour
     [SerializeField] private GameObject levelSelectInterface;
     [SerializeField] private GameObject SettingsInterface;
     [SerializeField] private GameObject bounceKeyboardDisplay, bounceControllerDisplay, bouncePromptDisplay;
+
+    // Main Pause Interface
     [SerializeField] private GameObject MainPauseInterface;
+    [SerializeField] private float outLoc, inLoc;     // Location out of screen, in screen
+    private Tween pauseTween;
 
     // Primary buttons
     [SerializeField] private Button ResumeButton, RestartButton, BurrowButton, SettingsButton, MainMenuButton;
@@ -52,6 +56,9 @@ public class PauseManager : MonoBehaviour
     [SerializeField] private Button ControlsButton, ExitControlsButton;
     [SerializeField] private GameObject ControllerDisplay, MouseKeyboardDisplay;
     [SerializeField] private float tweenFrom, tweenTo, tweenDuration;
+
+    [SerializeField] private LevelNames _levelNames;
+    
     private Tween controlsTween;
 
     // Start is called before the first frame update
@@ -175,17 +182,17 @@ public void SetControls()
     // }
     public void LoadLevel(string level)
     {
-        if (level != SceneManager.GetActiveScene().name)
-        {
-            CameraStateMachine.Instance.isLoadRestart = false;
-        }
-
         if (ControlsDisplay.activeInHierarchy)
         {
             TweenControlsOut();
         }
         //loadScreen.LoadScene(level);
-        LevelManager.Instance.LoadAnySceneAsync(level);
+
+        if (level.Contains("Burrow"))
+        {
+            GameMetadataTracker.Instance.ResetAllCheckpointForLevel(SceneManager.GetActiveScene().name);
+        }
+        LevelManager.Instance.LoadAnySceneAsync(level, false);
         UIManager.Instance.UnpauseGame();
         pInput.EnableCharacterControls();
     }
@@ -199,54 +206,100 @@ public void SetControls()
         string currentScene = SceneManager.GetActiveScene().name;
         GameMetadataTracker.Instance.ResetAllCheckpointForLevel(currentScene);
         
+        StopAllCoroutines();
+        
         // Disable timer
         UIManager.Instance.StopTime();
         UIManager.Instance.HideTimer();
 
         CameraStateMachine.Instance.isLoadRestart = true;
+        CameraStateMachine.Instance.StopCameraCinematics(true);
+
         LoadLevel(currentScene);
+        
+        
     }
 
 
     public void ReturnToTitle()
     {
+        AudioManager.instance.PlayOneShot(FMODEvents.instance.unPause, UIManager.Instance.transform.position);
         if (ControlsDisplay.activeInHierarchy)
         {
             TweenControlsOut();
         }
         //LoadScreenCanvas.gameObject.SetActive(true);
         GameMetadataTracker.Instance.ResetAllCheckpointForLevel(SceneManager.GetActiveScene().name);
-        Destroy(GameObject.FindGameObjectWithTag("Essentials"));
+        // Destroy(GameObject.FindGameObjectWithTag("Essentials"));
         // Destroy(GameMetadataTracker.Instance.gameObject);
         // loadScreen.LoadScene("MainMenu");
-        LevelManager.Instance.LoadAnySceneAsync("MainMenu");
+        pInput.EnableCharacterControls();
+        
+        SceneManager.LoadSceneAsync(_levelNames.MainMenuSceneName);
     }
+    
 
     public void Settings()
     {
         if (ControlsDisplay.activeInHierarchy)
         {
-            Debug.Log("tween out");
             TweenControlsOut(FinishOpeningSettings);
         }
         else
         {
-            Debug.Log("else");
             FinishOpeningSettings();
         }
     }
-
+    private void TweenMainPauseIn(Action DoAfter = null)
+    {
+        if(pauseTween != null) { pauseTween.Kill(); }
+        pauseTween = MainPauseInterface.transform.DOLocalMoveX(inLoc, tweenDuration)
+            .OnComplete(() =>
+            {
+                if(DoAfter != null)
+                {
+                    DoAfter();
+                }
+            })
+            .SetUpdate(true);
+    }
+    private void TweenMainPauseOut(Action DoAfter = null)
+    {
+        if (pauseTween != null) { pauseTween.Kill(); }
+        pauseTween = MainPauseInterface.transform.DOLocalMoveX(outLoc, tweenDuration)
+            .OnComplete(() =>
+            {
+                if (DoAfter != null)
+                {
+                    DoAfter();
+                }
+            })
+            .SetUpdate(true);
+    }
     public void FinishOpeningSettings()
     {
-        MainPauseInterface.SetActive(false);
+        MainPauseInterface.transform.localPosition = new Vector2(inLoc, MainPauseInterface.transform.localPosition.y);
+        TweenMainPauseOut(() =>
+        {
+            MainPauseInterface.SetActive(false);
+        });
         SettingsUI.Instance.ShowSettings();
+
     }
     public void CloseSettings()
     {
+        MainPauseInterface.transform.localPosition = new Vector2(outLoc, MainPauseInterface.transform.localPosition.y);
         MainPauseInterface.SetActive(true);
-        SettingsButton.Select();
+        TweenMainPauseIn(() =>
+        {
+            SettingsButton.Select();
+        });
     }
 
+    public bool IsControlsDisplayActive()
+    {
+        return ControlsDisplay.activeInHierarchy;
+    }
     public void TweenControlsIn()
     {
         ControlsDisplay.SetActive(true);
@@ -257,6 +310,7 @@ public void SetControls()
                 ExitControlsButton.Select();
             })
             .SetUpdate(true);
+        SetPauseNavigation(ExitControlsButton);
     }
     public void TweenControlsOut()
     {
@@ -268,6 +322,8 @@ public void SetControls()
                 ControlsDisplay.SetActive(false);
             })
             .SetUpdate(true);
+        SetPauseNavigation();
+
     }
     // Overload to add funcitonality after
     public void TweenControlsOut(Action callback)
@@ -281,6 +337,7 @@ public void SetControls()
                 callback();
             })
             .SetUpdate(true);
+        SetPauseNavigation();
     }
     private void SwitchControlsDisplay()
     {
@@ -300,6 +357,70 @@ public void SetControls()
                     break;
             }
         }
+    }
+
+    private void SetPauseNavigation(Button right = null)       // For all buttons in the main pause interface
+    {
+        // ResumeButton, RestartButton, BurrowButton, SettingsButton, MainMenuButton, ControlsButton
+
+        Navigation rNav = new Navigation
+        {
+            mode = Navigation.Mode.Explicit,
+            selectOnDown = RestartButton,
+            selectOnUp = ControlsButton,
+            selectOnLeft = null,
+            selectOnRight = right
+        };
+        ResumeButton.navigation = rNav;
+        Navigation reNav = new Navigation
+        {
+            mode = Navigation.Mode.Explicit,
+            selectOnDown = (SceneManager.GetActiveScene().name.ToLower().Contains("burrow") || SceneManager.GetActiveScene().name.ToLower().Contains("onboard")) ? SettingsButton : BurrowButton,
+            selectOnUp = ResumeButton,
+            selectOnLeft = null,
+            selectOnRight = right
+        };
+        RestartButton.navigation = reNav;
+        if (SceneManager.GetActiveScene().name.ToLower().Contains("burrow") ||
+            SceneManager.GetActiveScene().name.ToLower().Contains("onboard"))
+        {
+            Navigation bNav = new Navigation
+            {
+                mode = Navigation.Mode.Explicit,
+                selectOnDown =  SettingsButton,
+                selectOnUp = RestartButton,
+                selectOnLeft = null,
+                selectOnRight = right
+            };
+            BurrowButton.navigation = bNav;
+        }
+        Navigation sNav = new Navigation
+        {
+            mode = Navigation.Mode.Explicit,
+            selectOnDown =  MainMenuButton,
+            selectOnUp = (SceneManager.GetActiveScene().name.ToLower().Contains("burrow") || SceneManager.GetActiveScene().name.ToLower().Contains("onboard")) ? RestartButton : BurrowButton,
+            selectOnLeft = null,
+            selectOnRight = right
+        };
+        SettingsButton.navigation = sNav;
+        Navigation mNav = new Navigation
+        {
+            mode = Navigation.Mode.Explicit,
+            selectOnDown =  ControlsButton,
+            selectOnUp = SettingsButton,
+            selectOnLeft = null,
+            selectOnRight = right
+        };
+        MainMenuButton.navigation = mNav;
+        Navigation cNav = new Navigation
+        {
+            mode = Navigation.Mode.Explicit,
+            selectOnDown =  ResumeButton,
+            selectOnUp = MainMenuButton,
+            selectOnLeft = null,
+            selectOnRight = right
+        };
+        ControlsButton.navigation = cNav;
     }
     public void Exit()
     {
@@ -381,9 +502,10 @@ public void SetControls()
     private void OnEnable()
     {
         // CloseLevelSelection();      // Hide all secondary/tertiary menus when opening pause
-        CloseSettings();
+        if (SettingsUI.Instance.settingsActive) { CloseSettings(); }
         SetControls();
         SetBurrowButtonInteractable();
+        MainPauseInterface.transform.localPosition = new Vector2(inLoc, MainPauseInterface.transform.localPosition.y);
         ResumeButton.Select();
     }
     private void OnDisable()        // Hide all secondary menus (LevelSelect, Settings, etc) whenever unpaused

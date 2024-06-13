@@ -26,7 +26,7 @@ public class LevelSelect : MonoBehaviour
     private bool AlreadyAddedButtons = false;
 
     [SerializeField] private PlayerInput pInput;
-    private BurrowLevelInterface burrowLevelInterface;
+    private BurrowLevelSelect burrowLevelSelect;
     [SerializeField] bool isBurrowInterface;
 
     [field: SerializeField]
@@ -47,32 +47,13 @@ public class LevelSelect : MonoBehaviour
                 btn.name = level;
                 btn.onClick.AddListener(() => { 
                     if(SceneManager.GetActiveScene().name.Contains("Burrow")) {
-                        burrowLevelInterface.SetCannonLevel(level);
+                        burrowLevelSelect.SetCannonLevel(level);
                     }
                     else {
                         pauseManager.LoadLevel(level);
                     }
                     
                 });
-/*                if (buttons.Count == 0)
-                {
-                    btn.GetComponentInChildren<TextMeshProUGUI>().text = "Burrow";
-                    btn.name = "Burrow";
-                }
-                else    // "Level 1" "Level 2" "Level 3" ...
-                {
-                    btn.GetComponentInChildren<TextMeshProUGUI>().text = "Level " + buttons.Count;
-                    btn.name = "Level " + buttons.Count;
-                }*/
-/*                if(SceneManager.GetActiveScene().name.Contains("Burrow"))
-                {
-                    btn.GetComponentInChildren<TextMeshProUGUI>().text = "Level " + (buttons.Count+1);
-                }
-                else
-                {
-                    btn.GetComponentInChildren<TextMeshProUGUI>().text =
-                        level.Contains("Burrow") ? "Burrow" : "Level " + (buttons.Count);
-                }*/
 
                 btn.GetComponentInChildren<TextMeshProUGUI>().text =
                     level.Contains("Burrow") ? "Burrow" : "Level " + (buttons.Count);
@@ -87,32 +68,70 @@ public class LevelSelect : MonoBehaviour
         }
 
         int index = 0;
-        // Update all button UP and DOWN navigation
-        foreach (Button btn in buttons)
+        if(isBurrowInterface)
         {
-            Navigation nav = new Navigation();
-            nav.mode = Navigation.Mode.Explicit;
+            // Update all button LEFT and RIGHT navigation
+            foreach (Button btn in buttons)
+            {
+                Navigation nav = new Navigation();
+                nav.mode = Navigation.Mode.Explicit;
 
-            if (index == 0) // First button -- UP is the Close button
-            {
-                nav.selectOnUp = closeButton;
-                
-                nav.selectOnDown = buttons.Count == 1 ? closeButton : buttons[1];       // If only one level in list then go to close
-            }
-            else if (index == buttons.Count - 1) // Last button -- DOWN is the Close button
-            {
-                nav.selectOnUp = buttons[index - 1];
-                nav.selectOnDown = closeButton;
-            }
-            else
-            {
-                nav.selectOnUp = buttons[index - 1];
-                nav.selectOnDown = buttons[index + 1];
-            }
+                if (index == 0)
+                {
+                    nav.selectOnLeft = null;
+                    nav.selectOnRight = buttons.Count == 1 ? null : buttons[1];       // If only one level in list
 
-            btn.navigation = nav;
-            index++;
+                }
+                else if (index == buttons.Count - 1)
+                {
+                    nav.selectOnLeft = buttons[index - 1];
+                    nav.selectOnRight = null;
+                    nav.selectOnDown = closeButton;
+
+                }
+                else
+                {
+                    nav.selectOnUp = buttons[index - 1];
+                    nav.selectOnDown = buttons[index + 1];
+
+                    nav.selectOnDown = closeButton;
+
+                }
+
+                btn.navigation = nav;
+                index++;
+            }
         }
+        else
+        {
+            // Update all button UP and DOWN navigation
+            foreach (Button btn in buttons)
+            {
+                Navigation nav = new Navigation();
+                nav.mode = Navigation.Mode.Explicit;
+
+                if (index == 0) // First button -- UP is the Close button
+                {
+                    nav.selectOnUp = closeButton;
+
+                    nav.selectOnDown = buttons.Count == 1 ? closeButton : buttons[1];       // If only one level in list then go to close
+                }
+                else if (index == buttons.Count - 1) // Last button -- DOWN is the Close button
+                {
+                    nav.selectOnUp = buttons[index - 1];
+                    nav.selectOnDown = closeButton;
+                }
+                else
+                {
+                    nav.selectOnUp = buttons[index - 1];
+                    nav.selectOnDown = buttons[index + 1];
+                }
+
+                btn.navigation = nav;
+                index++;
+            }
+        }
+
 
         // Close button navigation
         Navigation cNav = new Navigation();
@@ -158,7 +177,7 @@ public class LevelSelect : MonoBehaviour
 
         if (isBurrowInterface)
         {
-            Debug.Log("In burrow");
+            Debug.Log("============================In burrow");
             buttons[0].gameObject.SetActive(false);
         }
         else
@@ -239,7 +258,7 @@ public class LevelSelect : MonoBehaviour
     private void OnEnable()
     {
         if(SceneManager.GetActiveScene().name.Contains("Burrow") && !pInput) { pInput = GameObject.Find("PlayerBase").GetComponent<PlayerInput>(); }
-        if(SceneManager.GetActiveScene().name.Contains("Burrow") && !burrowLevelInterface) { burrowLevelInterface = GameObject.Find("LevelSelectBurrow").GetComponent<BurrowLevelInterface>(); }
+        if(SceneManager.GetActiveScene().name.Contains("Burrow") && !burrowLevelSelect) { burrowLevelSelect = GameObject.Find("LevelSelectBurrow").GetComponent<BurrowLevelSelect>(); }
 
         if (SceneManager.GetActiveScene().name == "Level 0 - Onboard") // temporary
         {

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using __OasisBlitz.__Scripts.Enemy.old;
 using __OasisBlitz.__Scripts.FEEL;
@@ -5,6 +6,7 @@ using __OasisBlitz.__Scripts.Player.Environment;
 using __OasisBlitz.__Scripts.Player.Environment.Checkpoints;
 using __OasisBlitz.__Scripts.Player.Environment.FragileSand;
 using __OasisBlitz.__Scripts.Player.Environment.Fruits;
+using __OasisBlitz.Camera.StateMachine;
 using __OasisBlitz.Enemy;
 using __OasisBlitz.Player.Physics;
 using __OasisBlitz.Utility;
@@ -259,6 +261,9 @@ namespace __OasisBlitz.Player.StateMachine
                 case "NewEnemy":
                     ImpactNewEnemy(ref coll, hitNormal, hitPoint);
                     break;
+                case "GrapplePoint":
+                    ImpactGrapplePoint(coll.gameObject.GetComponent<DashTargetPoint>());
+                    break;
                 case "BounceKnightShield":
 #if DEBUG
                     if (Constants.DebugBounceKnightShield)
@@ -329,6 +334,11 @@ namespace __OasisBlitz.Player.StateMachine
             }
         }
         
+        protected virtual void ImpactGrapplePoint(DashTargetPoint grapplePoint)
+        {
+            // Do nothing by default, dash state will handle this
+        }
+        
         protected virtual void ImpactWalkOnly(ref Collider coll, Vector3 hitNormal, Vector3 hitPoint)
         {
             Ctx.PlayerPhysics.HandleContact(hitNormal);
@@ -352,7 +362,7 @@ namespace __OasisBlitz.Player.StateMachine
 
         protected virtual void ImpactBouncePadNoStick(ref Collider coll, Vector3 hitNormal, Vector3 hitPoint)
         {
-            Bounce.Instance.BounceCollider(ref coll, hitNormal, hitPoint, ref Ctx.PlayerPhysics, Bounce.BounceTypeNormal.Large, Bounce.BounceTypeReflective.Large);
+            Bounce.Instance.BounceCollider(ref coll, hitNormal, hitPoint, ref Ctx.PlayerPhysics, Bounce.BounceTypeNormal.Small, Bounce.BounceTypeReflective.Small);
         }
         protected virtual void ImpactFragileSand(ref Collider coll, Vector3 hitNormal, Vector3 hitPoint)
         {
@@ -380,13 +390,13 @@ namespace __OasisBlitz.Player.StateMachine
             Debug.Log(spawnPos.Value);
             Ctx.ModelRotator.SetFullDirection(spawnPos.Value);
             // Debug.LogError(Ctx.gameObject.transform.position);
-            Vector3 camPosRestLocation = Ctx.gameObject.transform.position - (spawnPos.Key - Ctx.gameObject.transform.position).normalized * 15.0f;
-            Ctx.cameraStateMachine.CurrentState.ResetCameraPosition();
+            // Vector3 camPosRestLocation = Ctx.gameObject.transform.position - (spawnPos.Key - Ctx.gameObject.transform.position).normalized * 15.0f;
+            // // Ctx.cameraStateMachine.CurrentState.ResetCameraPosition();
             // Ctx.cameraStateMachine.CurrentState.ForceSetCameraPosition(camPosRestLocation);
-            Quaternion q = Quaternion.FromToRotation(Vector3.forward, spawnPos.Value);
-            
-            Ctx.cameraStateMachine.SetHorizontalAxis(q.eulerAngles.y);
-            Ctx.cameraStateMachine.ResetVerticalAxis();
+            // Quaternion q = Quaternion.FromToRotation(Vector3.forward, spawnPos.Value);
+            //
+            // Ctx.cameraStateMachine.SetHorizontalAxis(q.eulerAngles.y);
+            // Ctx.cameraStateMachine.ResetVerticalAxis();
         }
 
         protected virtual void ImpactTouchThenFall(ref Collider coll, Vector3 hitNormal, Vector3 hitPoint)

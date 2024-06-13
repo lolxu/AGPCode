@@ -8,8 +8,10 @@ public class DustSlideTrail : MonoBehaviour
 {
     [SerializeField] private List<ParticleSystem> DustParticles;
     private int currDust = 0;
+    [SerializeField] private ParticleSystem waterTrail;
     public void SetEmissionRate(float Norm)
     {
+        DisableWaterTrail();
         Norm = Mathf.Clamp(Norm, 0.3f, 1.0f);
         int newDust = (int)(Norm / 0.05f) - 6;
         if (newDust != currDust)
@@ -26,5 +28,19 @@ public class DustSlideTrail : MonoBehaviour
     public void DisableDust()
     {
         DustParticles[currDust].Stop();
+    }
+
+    public void EnableWaterTrail()
+    {
+        DisableDust();
+        if (!waterTrail.isPlaying)
+        {
+            waterTrail.Play();
+        }
+    }
+
+    public void DisableWaterTrail()
+    {
+        waterTrail.Stop();
     }
 }

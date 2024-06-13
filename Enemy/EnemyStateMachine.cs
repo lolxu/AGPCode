@@ -23,7 +23,7 @@ namespace __OasisBlitz.Enemy.StateMachine
         public Rigidbody EnemyRigidBody;
         public string EnemyType;
         public DashTargetPoint DashTargetPoint;
-        protected PlayerStateMachine playerStateMachine;
+        public PlayerStateMachine playerStateMachine;
 
         // ************* ASSIGNED IN INSPECTOR *******************
         public TextMeshPro stateDebuggingText;
@@ -248,8 +248,6 @@ namespace __OasisBlitz.Enemy.StateMachine
         public virtual void HandleEnterDeath()
         {
             // currently two different adds, once we decide on one remove one (drillixir amount in enemy atm)
-            playerStateMachine.DrillixirManager.AddDrillixirCharge();
-            playerStateMachine.DrillixirManager.RefillDrillixir(drillixirRefillAmount);
             HapticsManager.Instance.PlayKillEnemyHaptic();
         }
         
@@ -323,39 +321,39 @@ namespace __OasisBlitz.Enemy.StateMachine
         }
         public void SetSuspiciousSymbol()
         {
-            AlertLevelIndicator.color = Color.yellow;
-            AlertLevelIndicator.SetText("?");
+            // AlertLevelIndicator.color = Color.yellow;
+            // AlertLevelIndicator.SetText("?");
         }
         
         public void SetSuspiciousLOSSymbol()
         {
-            AlertLevelIndicator.color = Color.yellow;
-            AlertLevelIndicator.SetText("!");
+            // AlertLevelIndicator.color = Color.yellow;
+            // AlertLevelIndicator.SetText("!");
         }
 
         public void SetIdleSymbol()
         {
-            AlertLevelIndicator.SetText("");
+            // AlertLevelIndicator.SetText("");
         }
 
         public void SetAlertSymbol()
         {
-            AlertLevelIndicator.color = Color.red;
-            AlertLevelIndicator.SetText("!");
-            AlertLevelIndicatorBackground.DOColor(Red, BackgroundFlashTime).SetLoops(-1, LoopType.Yoyo);
+            // AlertLevelIndicator.color = Color.red;
+            // AlertLevelIndicator.SetText("!");
+            // AlertLevelIndicatorBackground.DOColor(Red, BackgroundFlashTime).SetLoops(-1, LoopType.Yoyo);
         }
 
         public void DisableAlertSymbolBackground()
         {
-            AlertLevelIndicatorBackground.DOKill();
-            AlertLevelIndicatorBackground.color = RedTransparent;
+            // AlertLevelIndicatorBackground.DOKill();
+            // AlertLevelIndicatorBackground.color = RedTransparent;
         }
         
         public void AlertIconFacePlayer()
         {
-            Quaternion targetRotation = Quaternion.LookRotation(playerTransform.position - GetPlayerViewPosition());
-            targetRotation = Quaternion.Euler(0, targetRotation.eulerAngles.y + 180.0f, 0);
-            AlertLevelIndicator.transform.localRotation = targetRotation;
+            // Quaternion targetRotation = Quaternion.LookRotation(playerTransform.position - GetPlayerViewPosition());
+            // targetRotation = Quaternion.Euler(0, targetRotation.eulerAngles.y + 180.0f, 0);
+            // AlertLevelIndicator.transform.localRotation = targetRotation;
         }
         private void OnDrawGizmosSelected()
         {

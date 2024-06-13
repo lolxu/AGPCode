@@ -10,7 +10,7 @@ namespace __OasisBlitz.Utility
 
 #if DEBUG
         //Debug Constants
-        public const bool DebugRootStateChanges = true;
+        public const bool DebugRootStateChanges = false;
         public const bool DebugLevelLoader = false;
         public const bool DebugSubstateChanges = false;
         public const bool DebugBounce = false;
@@ -19,6 +19,7 @@ namespace __OasisBlitz.Utility
         public const bool DebugBounceKnightShield = false;
         public const bool DebugIKRun = false;
         public const bool DebugIKIdle = false;
+        public const bool DebugPlayerInputStateChanges = false;
         //Abilities
         public const bool RestrictedMovementOn = false;
 #endif

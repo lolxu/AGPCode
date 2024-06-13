@@ -56,7 +56,7 @@ public class Bomb : Swarmer
     public override void SetSpawnLocation()
     {
         base.SetSpawnLocation();
-        OGColor = _meshRenderer.material.color;
+        //OGColor = _meshRenderer.material.color;
         OGScale = transform.localScale;
         newScale = OGScale * 1.2f;
     }
@@ -65,7 +65,7 @@ public class Bomb : Swarmer
     {
         base.ResetOnEnable();
         BombBody.SetActive(true);
-        _meshRenderer.material.color = OGColor;
+        //_meshRenderer.material.color = OGColor;
         transform.localScale = OGScale;
     }
 
@@ -87,7 +87,7 @@ public class Bomb : Swarmer
         //sizzleEvent.setParameterByName("SizzleVolume", normalizedCurrTimeForWarningAndDisengagingAlert);
         sizzleEmitter.SetParameter("SizzleVolume", normalizedCurrTimeForWarningAndDisengagingAlert);
         //starts at -1, goes to 0 halfway through goes to white until we hit PI
-        _meshRenderer.material.color = Color.Lerp(OGColor, White, (-Mathf.Cos(normalizedCurrTimeForWarningAndDisengagingAlert * Mathf.PI + FlickerRate * TwoPI * normalizedCurrTimeForWarningAndDisengagingAlert * normalizedCurrTimeForWarningAndDisengagingAlert * normalizedCurrTimeForWarningAndDisengagingAlert) + 1) * 0.5f);
+        //_meshRenderer.material.color = Color.Lerp(OGColor, White, (-Mathf.Cos(normalizedCurrTimeForWarningAndDisengagingAlert * Mathf.PI + FlickerRate * TwoPI * normalizedCurrTimeForWarningAndDisengagingAlert * normalizedCurrTimeForWarningAndDisengagingAlert * normalizedCurrTimeForWarningAndDisengagingAlert) + 1) * 0.5f);
         transform.localScale = Vector3.Lerp(OGScale, newScale, normalizedCurrTimeForWarningAndDisengagingAlert);
     }
 
@@ -101,7 +101,7 @@ public class Bomb : Swarmer
         float normalizedCurrTimeForWarningAndDisengagingAlert = CurrTimeForWarningAndDisengagingAlert / TimeForWarningAndDisengagingAlert;
         sizzleEmitter.SetParameter("SizzleVolume", normalizedCurrTimeForWarningAndDisengagingAlert);
         //sizzleEvent.setParameterByName("SizzleVolume", normalizedCurrTimeForWarningAndDisengagingAlert);
-        _meshRenderer.material.color = Color.Lerp(OGColor, White, (-Mathf.Cos(normalizedCurrTimeForWarningAndDisengagingAlert * Mathf.PI + FlickerRate * TwoPI * normalizedCurrTimeForWarningAndDisengagingAlert * normalizedCurrTimeForWarningAndDisengagingAlert * normalizedCurrTimeForWarningAndDisengagingAlert) + 1) * 0.5f);
+        //_meshRenderer.material.color = Color.Lerp(OGColor, White, (-Mathf.Cos(normalizedCurrTimeForWarningAndDisengagingAlert * Mathf.PI + FlickerRate * TwoPI * normalizedCurrTimeForWarningAndDisengagingAlert * normalizedCurrTimeForWarningAndDisengagingAlert * normalizedCurrTimeForWarningAndDisengagingAlert) + 1) * 0.5f);
         transform.localScale = Vector3.Lerp(OGScale, newScale, normalizedCurrTimeForWarningAndDisengagingAlert);
     }
 
@@ -115,7 +115,7 @@ public class Bomb : Swarmer
     public override void HandleEnterAttack()
     {
         transform.localScale = newScale;
-        _meshRenderer.material.color = White;
+        //_meshRenderer.material.color = White;
         sizzleEvent.stop(STOP_MODE.IMMEDIATE);
         sizzleEmitter.Stop();
         explosionTransform.position = GetPlayerViewPosition();
@@ -152,7 +152,7 @@ public class Bomb : Swarmer
     
     private void BombDeathFlash()
     {
-        _meshRenderer.material.color = White;
+        //_meshRenderer.material.color = White;
         StartCoroutine(BombWaitThenDestroy());
     }
     private IEnumerator BombWaitThenDestroy()

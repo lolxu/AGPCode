@@ -46,36 +46,48 @@ public class SettingsUI : MonoBehaviour
 
     [Header("Tweening")]
     [SerializeField] private SettingsTweens settingsTweens;
+
     public void ShowSettings()
     {
-        if(SceneManager.GetActiveScene().name == "MainMenu")
-        {
-            MainsectionRunes.SetActive(true);
-        }
         settingsCanvas.gameObject.SetActive(true);
-        HideOpenSettings("all");
-        ControlsButton.Select();
-        settingsActive = true;
+        settingsTweens.SlideSettingsIn(() =>
+        {
+            settingsActive = true;
+        });
     }
-
+    public void SlideSettingsOut(Action DoAfter = null)  // For use in PauseManager
+    {
+        settingsTweens.SlideSettingsOut(() =>
+        {
+            settingsActive = false;
+            GlobalSettings.Instance.SavePlayerPrefs();
+            settingsCanvas.gameObject.SetActive(false);
+            if(DoAfter != null)
+            {
+                DoAfter();
+            }
+        });
+    }
     public void HideSettings()
     {
         settingsActive = false;
-        HideOpenSettings("all");
-        if (SceneManager.GetActiveScene().name == "MainMenu")
+        // HideOpenSettings("all");
+        settingsTweens.SlideSettingsOut(() =>
         {
-            MainMenu mm = GameObject.Find("MainMenuCanvas").GetComponent<MainMenu>();
-            mm.CloseSettings();
-            MainsectionRunes.SetActive(false);
-        }
-        else
-        {
-            if(PauseManager.Instance) { PauseManager.Instance.CloseSettings(); }
-        }
-        GlobalSettings.Instance.SavePlayerPrefs();
-        settingsCanvas.gameObject.SetActive(false);
-
+            MainMenu mainMenu = FindObjectOfType<MainMenu>();
+            if (mainMenu != null)
+            {
+                mainMenu.CloseSettings();
+            }
+            else
+            {
+                if (PauseManager.Instance) { PauseManager.Instance.CloseSettings(); }
+            }
+            GlobalSettings.Instance.SavePlayerPrefs();
+            settingsCanvas.gameObject.SetActive(false);
+        });
     }
+
     public void HideOpenSettings(string callType)
     {
         switch(callType)
@@ -98,24 +110,22 @@ public class SettingsUI : MonoBehaviour
                 if (SoundSettingsInterface.activeInHierarchy) { HideSoundTween(); }
                 break;
         }
-
     }
 
+    // NO LONGER TOGLGLES SICNE ONE PANEL MSUT BE OPEN ALWASY
     public void ToggleControlsSettings()
     {
-        if (ControlsSettingsInterface.activeInHierarchy) { HideControlsTween(); }
-        else { ShowControlsTween(); }
+        if (!ControlsSettingsInterface.activeInHierarchy) { ShowControlsTween(); }
     }
     public void ToggleDisplaySettings()
     {
-        if (DisplaySettingsInterface.activeInHierarchy) { HideDisplayTween(); }
-        else { ShowDisplayTween(); }
+        if (!DisplaySettingsInterface.activeInHierarchy) { ShowDisplayTween(); }
     }
     public void ToggleSoundSettings()
     {
-        if (SoundSettingsInterface.activeInHierarchy) { HideSoundTween(); }
-        else { ShowSoundTween(); }
+        if (!SoundSettingsInterface.activeInHierarchy) { ShowSoundTween(); }
     }
+
     public void ShowControlsTween()
     {
         ControlsButtonHighlight.SetActive(true);
@@ -256,7 +266,7 @@ public class SettingsUI : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
     private void SetSceneCamera()
     {

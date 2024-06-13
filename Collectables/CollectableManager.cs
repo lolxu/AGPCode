@@ -37,11 +37,14 @@ namespace __OasisBlitz.__Scripts.Collectables
         [SerializeField] private List<DecorCollectables> _decorCollectablesList;
         [SerializeField] private float collectablePickupRadius = 3.0f;
 
+        private bool isFirstLoad;
+
         private void Awake()
         {
             if (Instance == null)
             {
                 Instance = this;
+                isFirstLoad = true;
             }
 
             m_player = GameObject.FindGameObjectWithTag("Player");
@@ -50,17 +53,17 @@ namespace __OasisBlitz.__Scripts.Collectables
 
         private void OnSceneload(Scene scene, LoadSceneMode mode)
         {
-            // Debug.Log("Here");
-            if (scene.name.Contains("Burrow"))
+            if (scene.name.Contains("Burrow") && isFirstLoad)
             {
                 XMLFileManager.Instance.Load();
                 XMLFileManager.Instance.LoadAllData();
+                isFirstLoad = false;
             }
         }
 
         public void ChangeCollectableStatus(CollectableObject targetCollectableObject, bool collected, bool placed)
         {
-            Debug.Log(targetCollectableObject);
+            Debug.Log(targetCollectableObject + " changed collectable status. Collected: " + collected + " Placed: " + placed);
 
             if (targetCollectableObject.CollectableType == CollectableType.PLANT)
             {
@@ -72,6 +75,7 @@ namespace __OasisBlitz.__Scripts.Collectables
                         plant.isSaved = collected;
                         plant.isPlaced = placed;
                         found = true;
+                        break;
                     }
                 }
 
@@ -92,6 +96,7 @@ namespace __OasisBlitz.__Scripts.Collectables
                         decor.isSaved = collected;
                         decor.isPlaced = placed;
                         found = true;
+                        break;
                     }
                 }
 
@@ -129,6 +134,21 @@ namespace __OasisBlitz.__Scripts.Collectables
             }
         }
 
+        public void ClearAllCollectableStatus()
+        {
+            foreach (var plant in _plantCollectablesList)
+            {
+                plant.isSaved = false;
+                plant.isPlaced = false;
+            }
+            
+            foreach (var decor in _decorCollectablesList)
+            {
+                decor.isSaved = false;
+                decor.isPlaced = false;
+            }
+        }
+
         
         /// <summary>
         /// Look up the placement status of a plant
@@ -161,10 +181,10 @@ namespace __OasisBlitz.__Scripts.Collectables
             return false;
         }
         
-        public void RequestForCollectableAppearance(int type, int index, Vector3 location, Quaternion rotation)
+        public void RequestForCollectableAppearance(CollectableType type, int index, Vector3 location, Quaternion rotation)
         {
             // FOR PLANTS
-            if (type == 0)
+            if (type == CollectableType.PLANT)
             {
                 foreach (var plantCollectables in _plantCollectablesList)
                 {
@@ -177,7 +197,7 @@ namespace __OasisBlitz.__Scripts.Collectables
                     }
                 }
             }
-            else if (type == 1)
+            else if (type == CollectableType.DECOR)
             {
                 // For decors
                 foreach (var decorCollectables in _decorCollectablesList)
@@ -193,7 +213,7 @@ namespace __OasisBlitz.__Scripts.Collectables
             }
         }
 
-        public void RequestPickupCollectable()
+        /*public void RequestPickupCollectable()
         {
             // TODO make an angle check later as well for better interactions
             
@@ -205,7 +225,7 @@ namespace __OasisBlitz.__Scripts.Collectables
                     col.gameObject.GetComponent<CollectableObject>().StartInteractSequence();
                 }
             }
-        }
+        }*/
 
         public bool CheckIsSaved(int index)
         {

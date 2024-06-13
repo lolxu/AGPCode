@@ -1,8 +1,13 @@
+using System;
 using __OasisBlitz.Utility;
 using System.Collections;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Net;
+using __OasisBlitz.__Scripts.Player.Environment.Checkpoints;
+using __OasisBlitz.Player;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -35,10 +40,60 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private TextMeshProUGUI ContinueText;
     public Material SpeedLineMaterial;
 
-    [SerializeField] private string onboardLevel;
+    [SerializeField] private LevelNames levelNames;
+
+    
+    // called when "Continue" or "Start Game" (depending on start scene is pressed).
+    public Action OnStartGamePressed;
+
+    /*
+     * The main menu is destroyed when you start the game, (after it fades itself out and enables character controls)
+     * But, it is created in a fork scene, that decides if you should start in burrow or onboarding
+     * 
+     */
+    private void Start()
+    {
+        FirstLevelGateway isFirstLevel = FirstLevelGateway.Instance;
+        if (isFirstLevel)
+        {
+            FirstLevelGateway.Instance = null;
+            Destroy(isFirstLevel.gameObject);
+            
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;    
+            
+            PlayerInput pInput = GameObject.FindWithTag("Player").GetComponent<PlayerInput>();
+            pInput.EnableUIControls();
+            UIManager.Instance.canPauseGame = false;
+        }
+        else
+        {
+            if (OnStartGamePressed != null)
+            {
+                OnStartGamePressed();
+            }
+            Destroy(gameObject);
+        }
+    }
+
+    public void StartGame()
+    {
+        // if we have save data, open start interface
+        if (XMLFileManager.Instance.GetNumPlantsCollected() != 0)
+        {
+            OpenStartInterface();
+        }
+        // otherwise, just "start" the game from onboarding
+        else
+        {
+            ContinueGame();
+            HUDManager.Instance.ToggleAdaptiveHud(GlobalSettings.Instance.controlsHUD);
+        }
+    }
 
     public void OpenStartInterface()
     {
+        _Start.gameObject.transform.localPosition = new Vector3(-264.0f, 0.0f, 0.0f);
         _Start.gameObject.SetActive(true);
         SetStartNavigation();
         Main.gameObject.SetActive(false);
@@ -127,21 +182,53 @@ public class MainMenu : MonoBehaviour
             NewGameButton.Select();
         }
     }
+
+    private void DeleteGhostData(string sceneName)
+    {
+        string fullReplayName = GhostRecorder.GetRecordingName(sceneName);
+        if (File.Exists(fullReplayName))
+        {
+            File.Delete(fullReplayName);
+        }
+    }
     
     public void StartNewGame()
     {
         XMLFileManager.Instance.NewGame();
-        StartGame(onboardLevel);
+        
+        // clear replay data
+        DeleteGhostData(levelNames.Level1Name);
+        DeleteGhostData(levelNames.Level2Name);
+        
+        SceneManager.LoadSceneAsync(levelNames.MainMenuSceneName);
     }
-    public void StartGame(string level)     
-    {
-        //LoadScreenCanvas.gameObject.SetActive(true);
-        // XMLFileManager.Instance.Load();
 
-        // I don't think we have SceneEssentials at the start, so just use load screen for now?
-        if (!LevelManager.Instance) { loadScreen.LoadScene(level); }
-        else { LevelManager.Instance.LoadAnySceneAsync(level); }
+    
+
+    public void ContinueGame()
+    {
+        if (OnStartGamePressed != null)
+        {
+            OnStartGamePressed();
+        }
     }
+
+    public void FadeOutAndDestroyMainMenu(float duration)
+    {
+        // Debug.Log("Not Implemented Destroy MainMenu!!!");
+        // todo: make this an ienumerator or something to actually check "isdestroyed" or if this thing is even done
+        // with the animation
+        CanvasGroup mainMenuCanvasGroup = GetComponent<CanvasGroup>();
+        if (mainMenuCanvasGroup)
+        {
+            mainMenuCanvasGroup.interactable = false;
+            mainMenuCanvasGroup.DOFade(0.0f, duration).OnComplete(() =>
+            {
+                Destroy(gameObject);
+            });
+        }
+    }
+   
     public void OpenSettings()
     {
         SettingsUI.Instance.ShowSettings();
@@ -150,9 +237,8 @@ public class MainMenu : MonoBehaviour
     }
     public void OpenCredits()
     {
-        Credits.gameObject.SetActive(true);
-        Main.gameObject.SetActive(false);
-        CloseCreditsButton.Select();
+        Destroy(GameObject.FindWithTag("Essentials"));
+        SceneManager.LoadScene(levelNames.CreditsName);
     }
 
     public void Exit()
@@ -177,25 +263,49 @@ public class MainMenu : MonoBehaviour
         CreditsButton.Select();
     }
 
-
-
-
-    // Start is called before the first frame update
-    void Start()
+    private void OnEnable()
     {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        if(HUDManager.Instance) { HUDManager.Instance.ToggleAdaptiveHud(false); }
+    }
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+
+    }
+
+    /*
+     * todo: make the main menu something that is... spawned in after the scene as part of some sort of
+     * singleton that gets destroyed on load. If it isn't there, it destroys itself on awake or something,
+     * and is included in onboarding and burrow.
+     */
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Canvas canvas = GetComponent<Canvas>();
+        canvas.worldCamera = GameObject.FindGameObjectWithTag("UICamera").GetComponent<Camera>();
+        StartCoroutine(WaitOneFrame());
+        if(SceneManager.GetActiveScene().name.ToLower().Contains("onboard"))
+        {
+            if(HUDManager.Instance)
+            {
+                HUDManager.Instance.ToggleAdaptiveHud(false);
+            }
+        }
+    }
+
+    private IEnumerator WaitOneFrame()
+    {
+        yield return null;
         SpeedLineMaterial.SetColor("_Colour", Color.clear);
         // LoadScreenCanvas.gameObject.SetActive(false);
         CloseCredits();
         CloseSettings();
         StartButton.Select();
-
+        if (loadScreen == null)
+        {
+            loadScreen = GameObject.FindObjectOfType<LoadingScreen>();
+        }
         // Reset time scale if pulling up Main Menu from in game (otherwise credits tween will not work)
-        if(Time.timeScale != 1) { Time.timeScale = 1.0f; }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
+        if (Time.timeScale != 1) { Time.timeScale = 1.0f; }
     }
 }

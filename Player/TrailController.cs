@@ -17,13 +17,19 @@ namespace __OasisBlitz.Player
         // destroy existing trail.
         public void EnableTrail()
         {
-            _trailRenderer.enabled = true;
-            _trailRenderer.Clear();
+            if (_trailRenderer)
+            {
+                _trailRenderer.enabled = true;
+                _trailRenderer.Clear();
+            }
         }
     
         public void DisableTrail()
         {
-            _trailRenderer.enabled = false;
+            if (_trailRenderer)
+            {
+                _trailRenderer.enabled = false;
+            }
         }
     }
 }

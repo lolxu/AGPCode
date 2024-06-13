@@ -57,10 +57,10 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Checkpoints
 
         public void RequestLevelTransit()
         {
-            if (LevelManager.Instance.TeleportRequested)
-            {
-                LevelManager.Instance.LoadAnySceneAsync(GameMetadataTracker.Instance.GetPreviousSceneName());
-            }
+            // if (LevelManager.Instance.TeleportRequested)
+            // {
+            //     LevelManager.Instance.LoadAnySceneAsync(GameMetadataTracker.Instance.GetPreviousSceneName());
+            // }
         }
     }
 }

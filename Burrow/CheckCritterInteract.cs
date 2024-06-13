@@ -7,6 +7,7 @@ using __OasisBlitz.Player.StateMachine;
 using __OasisBlitz.Utility;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Localization.Settings;
 using UnityEngine.Serialization;
 using Yarn.Unity;
 using Yarn.Unity.Example;
@@ -16,6 +17,7 @@ public class CheckCritterInteract : MonoBehaviour
 {
     [SerializeField] private DialogueRunner runner;
     [SerializeField] private LayerMask targetPointMask;
+    [SerializeField] private CritterInteractAudio critterInteractAudio;
     private Collider[] queryResult;
     public float potentialTargetRadius;
     public float critterTargetAngle;
@@ -26,14 +28,19 @@ public class CheckCritterInteract : MonoBehaviour
     private PlayerStateMachine Ctx;
     private Coroutine faceCritter = null;
 
+    private bool bIsOnCooldown = false;
+    [SerializeField] private float TalkingCooldown = 2.0f;
+
     private void OnEnable()
     {
         PlayerInput.CancelCritterInteraction += StopCritterInteraction;
+        PlayerInput.CritterContinueInteraction += InteractWithCritter;
     }
 
     private void OnDisable()
     {
         PlayerInput.CancelCritterInteraction -= StopCritterInteraction;
+        PlayerInput.CritterContinueInteraction -= InteractWithCritter;
     }
 
     private void Awake()
@@ -62,7 +69,6 @@ public class CheckCritterInteract : MonoBehaviour
     {
         if (ForcedInteractionInPlace)
         {
-            Debug.Log("Forced interact");
             return;
         }
         // Target enemies within FOV
@@ -143,9 +149,12 @@ public class CheckCritterInteract : MonoBehaviour
 
     public void InteractWithCritter()
     {
-        if (closestCritter != null && !runner.IsDialogueRunning)
+        if (closestCritter != null && !bIsOnCooldown)
         {
-            StartCritterInteract(closestCritter);
+            if (!runner.IsDialogueRunning)
+            {
+                StartCritterInteract(closestCritter);
+            }
         }
     }
     
@@ -195,17 +204,49 @@ public class CheckCritterInteract : MonoBehaviour
         }
     }
 
+    [YarnCommand("SetIdle")]
+    public void SetIdleOfClosest(int idleIndex)
+    {
+        if (closestCritter != null)
+        {
+            closestCritter.critterAnimations.SwitchIdleState((CritterAnimations.Idles)idleIndex);
+        }
+        else
+        {
+            Debug.LogWarning("No closest critter exists");
+        }
+    }
+
+    [YarnCommand("SetAA")]
+    public void SetAdditionalAnimation(int animIndex, bool isSet, bool isTrigger = false)
+    {
+        if (closestCritter != null)
+        {
+            closestCritter.critterAnimations.SetAdditionalAnimation(animIndex, isSet, isTrigger);
+        }
+        else
+        {
+            Debug.LogWarning("No closest critter exists");
+        }
+    }
+
     private void StartCritterInteract(Critter critter)
     {
+        // Hide the grapple point UI
+        HUDManager.Instance.GetGrapplePoint().ForceHideGrapplePoint();
         //stop searching for nearby critters to interact with
         ForcedInteractionInPlace = true;
         closestCritter = critter;
+        //Setup Audio
+        critterInteractAudio.StartAudio(closestCritter.critterName, closestCritter.transform);
+        //Setup Animation
+        closestCritter.critterAnimations.SetupInteractAnimations();
         //Start dialogue
         runner.StartDialogue(critter.GetDesiredDialogueNode());
         //Make critter cam the active one
         critter.thisCritterCamera.Priority.Value = 1000;
         //Disable Player Input Mapping
-        playerInput.EnterCritterInteractState();
+        playerInput.EnableCritterInteractControls();
         //Fade to black
         HUDManager.Instance.GetSceneTransitionImage().DOFade(1.0f, 0.25f)
             .SetEase(Ease.OutExpo).OnComplete(MoveBanditForInteract);
@@ -224,8 +265,17 @@ public class CheckCritterInteract : MonoBehaviour
         closestCritter.DisableInteractIndicator();
     }
 
+    public void DismissLine()
+    {
+        //Audio
+        //critterInteractAudio.DismissLineAudio();
+    }
+
     public void EndCritterInteract(Critter critter)
     {
+        critterInteractAudio.EndAudio();
+        // Renable grapple point UI
+        HUDManager.Instance.GetGrapplePoint().ForceShowGrapplePoint();
         //Kill fade to black if still running
         HUDManager.Instance.GetSceneTransitionImage().DOKill();
         HUDManager.Instance.GetSceneTransitionImage().color = Color.clear;
@@ -237,6 +287,14 @@ public class CheckCritterInteract : MonoBehaviour
         playerInput.EnableCharacterControls();
         //release rotation lock
         Ctx.ModelRotator.ReleaseLockedRotation();
+        //Reset critter animations + model position
+        closestCritter.critterAnimations.DisableInteractAnimations();
+
+        bIsOnCooldown = true;
+        DOVirtual.DelayedCall(TalkingCooldown, () =>
+        {
+            bIsOnCooldown = false;
+        }, false);
     }
 
     // private void OnDrawGizmosSelected()

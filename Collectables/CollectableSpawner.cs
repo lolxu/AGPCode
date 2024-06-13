@@ -16,14 +16,7 @@ namespace __OasisBlitz.__Scripts.Collectables
             yield return null;
             yield return null;
 
-            if (type == CollectableType.PLANT)
-            {
-                CollectableManager.Instance.RequestForCollectableAppearance(0, collectableIndex, transform.position, transform.rotation);
-            }
-            else
-            {
-                CollectableManager.Instance.RequestForCollectableAppearance(1, collectableIndex, transform.position, transform.rotation);
-            }
+            CollectableManager.Instance.RequestForCollectableAppearance(type, collectableIndex, transform.position, transform.rotation);
         }
 
         private void OnDrawGizmos()

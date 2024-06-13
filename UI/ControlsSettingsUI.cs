@@ -27,6 +27,7 @@ public class ControlsSettingsUI : MonoBehaviour
     public void OnMouseSliderValueChanged()
     {
         MovementSettings.Instance.SetMouseLookMultiplier(GetMouseSliderValueConverted());
+        AudioManager.instance.ui_sliderVal = (int)MouseSlider.value;
     }
     public float GetMouseSliderValueConverted()
     {
@@ -48,6 +49,7 @@ public class ControlsSettingsUI : MonoBehaviour
     public void OnControllerSliderValueChanged()
     {
         MovementSettings.Instance.SetControllerLookMultiplier(GetControllerSliderValueConverted());
+        AudioManager.instance.ui_sliderVal = (int)ControllerSlider.value;
     }
     public float GetControllerSliderValueConverted()
     {

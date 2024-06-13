@@ -24,85 +24,127 @@ namespace __OasisBlitz.Player.Environment.Cannon
         public CinemachineCamera burrowCamera;
 
         private PlayerStateMachine ctx;
+        private PlayerInput playerInput;
+        
+        public StartBelowGround startBelowGround;
+        public BurrowPlantManager burrowPlantManager;
+
+        public bool playCutscene = false;
+
+        public Slideshow openingCutscene;
+        public Slideshow endingCutscene;
+        public GameplayMusic burrowMusic;
+
+        private Coroutine slideRoutine;
 
         private void Awake()
         {
             if (Instance == null)
             {
                 Instance = this;
+                return;
             }
+            
+            Destroy(gameObject);
         }
 
         private IEnumerator Start()
         {
             yield return null;
-            ctx = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerStateMachine>();
-            // ctx.ToggleDrill = false;
-            // ctx.ToggleJump = false;
-            
+            {
+                GameObject player = GameObject.FindGameObjectWithTag("Player");
+                ctx = player.GetComponent<PlayerStateMachine>();
+                playerInput = player.GetComponent<PlayerInput>();
+            }
+
             // Initializing cannons
             XMLFileManager.Instance.Load();
 
-            // TODO this should be tied up to the level select thing in burrow
-            // for (int i = 0; i < totalLevels; i++)
-            // {
-            //     bool isUnlocked = CollectableManager.Instance.CheckIsSaved(i);
-            //     _cannonObject.SetAvailable(isUnlocked);
-            // }
-
-        }
-
-        /// <summary>
-        /// For cinematics in burrow
-        /// </summary>
-        /// <param name="target"> The targeted object </param>
-        /// <param name="type"> "Plant" for plant cam, "Cannon" for cannon cam </param>
-        /// <param name="plantIndex"> Default = -1, but otherwise put plant index </param>
-        /// <returns></returns>
-        public IEnumerator ActivateBurrowCinematicsCamera(GameObject target, string type, int plantIndex = -1)
-        {
-            if (plantCamera && cannonCamera)
+            if (playCutscene && XMLFileManager.Instance.ShouldPlayCutscene())
             {
-                // Switch to plant camera
-                Debug.Log(target);
-                burrowCamera.gameObject.SetActive(false);
-                GameObject cineCam = null;
-                switch (type)
-                {
-                    case "Plant":
-                        cineCam = plantCamera.gameObject;
-                        break;
-                    case "Cannon":
-                        cineCam = cannonCamera.gameObject;
-                        target = _cannonObject.gameObject;
-                        break;
-                }
-
-                if (cineCam != null) cineCam.SetActive(true);
-
-                plantCamera.LookAt = target.transform;
-                yield return null;
-                yield return null;
-                while (CameraStateMachine.Instance.CameraSurface.GetComponent<CinemachineBrain>().IsBlending)
-                {
-                    yield return null;
-                }
-
-                if (type == "Cannon")
-                {
-                    CannonParticleEffect(target, plantIndex);
-                }
-
-                yield return new WaitForSeconds(2.0f);
-
-                if (cineCam != null) cineCam.SetActive(false);
-
-                burrowCamera.gameObject.SetActive(true);
+                openingCutscene.gameObject.SetActive(true);
+                XMLFileManager.Instance.SaveCutsceneViewed();
+                DisableBanditModelAndInput();
+                StartOpeningCutscene();
+            }
+            else if (playCutscene && XMLFileManager.Instance.ShouldPlayEndingCutscene())
+            {
+                endingCutscene.gameObject.SetActive(true);
+                XMLFileManager.Instance.SaveEndingCutsceneViewed();
+                DisableBanditModelAndInput();
+                StartEndingCutscene();
             }
             else
             {
-                Debug.LogError("Camera not setup correctly for burrow");
+                StartBurrowMusicAndAmbience();
             }
+
+        }
+
+        private void DisableBanditModelAndInput()
+        {
+            ctx.ModelRotator.HideBandit();
+            playerInput.SwitchCurrentInputState(PlayerInput.PlayerInputState.SlideShowControls);
+        }
+        
+        private void EnableBanditModelAndInput()
+        {
+            ctx.ModelRotator.RevealBandit();
+            playerInput.SwitchCurrentInputState(PlayerInput.PlayerInputState.Character);
+        }
+
+        private void StartBurrowMusicAndAmbience()
+        {
+            burrowMusic.StartMusic();  
+            burrowMusic.StartAmbience();
+        }
+        
+        private void StartOpeningCutscene()
+        {
+            slideRoutine = StartCoroutine(openingCutscene.StartSlideshow());
+            openingCutscene.OnSlideshowEnd += OnOpeningCutsceneEnd;
+            openingCutscene.OnSlideshowMusicEnd += OnOpeningCutsceneMusicEnd;
+            openingCutscene.OnSlideshowSkip += SlideShowSkipped;
+        }
+        
+        private void StartEndingCutscene()
+        {
+            slideRoutine = StartCoroutine(endingCutscene.StartSlideshow(true));
+            endingCutscene.OnSlideshowEnd += OnOpeningCutsceneEnd;
+            endingCutscene.OnSlideshowMusicEnd += OnOpeningCutsceneMusicEnd;
+            endingCutscene.OnSlideshowSkip += SlideShowSkipped;
+        }
+
+        private void OnOpeningCutsceneEnd()
+        {
+            EnableBanditModelAndInput();
+        }
+
+        private void OnOpeningCutsceneMusicEnd()
+        {
+            StartBurrowMusicAndAmbience();
+        }
+
+        private void SlideShowSkipped()
+        {
+            StopCoroutine(slideRoutine);
+            OnOpeningCutsceneEnd();
+            OnOpeningCutsceneMusicEnd();
+        }
+        
+        private void OnEnable()
+        {
+            startBelowGround.OnEmergeFromGround += PlacePlantOnEmerge;
+        }
+        
+        private void OnDisable()
+        {
+            startBelowGround.OnEmergeFromGround -= PlacePlantOnEmerge;
+        }
+
+        private void PlacePlantOnEmerge()
+        {
+            burrowPlantManager.unplacedPlant?.PlaceInBurrow();
         }
 
         private void CannonParticleEffect(GameObject cannon, int index)

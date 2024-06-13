@@ -1,29 +1,26 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using __OasisBlitz.__Scripts.UI;
 using __OasisBlitz.Camera.StateMachine;
 using __OasisBlitz.Enemy;
 using __OasisBlitz.Player.Physics;
 using __OasisBlitz.Player.StateMachine;
 using __OasisBlitz.Utility;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 public class TargetedDash : MonoBehaviour
 {
-    public float dashSlowdownTime;
-    public float postSlowdownPauseTime;
-    public float dashSpeed;
     public float postDashSpeed;
 
-    public float drillixirCost;
-    public float minimumDrillixir;
-    
-    public GameObject trajectoryLinePrefab;
-    private DashTrajectoryLine currentTrajectoryLine;
-
     public bool forwardDashOnly = false;
+    
+    [SerializeField] private Transform leftGauntletAttachPoint;
+    [SerializeField] private Transform rightGauntletAttachPoint;
     
     [Header("Dash ranges")] 
     public float upperIncomingAngle = 45f;
@@ -48,17 +45,8 @@ public class TargetedDash : MonoBehaviour
 
     private float incomingAngle = 0f;
     
-    public class DashAttemptResult
-    {
-        public bool DidDash;
-        public Vector3 DashVelocity;
-
-        public DashAttemptResult()
-        {
-            DidDash = false;
-            DashVelocity = Vector3.zero;
-        }
-    }
+    private bool hasPlayedImpactAnimation = false;
+    
 
     public Vector3 TargetPosition()
     {
@@ -70,20 +58,8 @@ public class TargetedDash : MonoBehaviour
         return Vector3.zero;
     }
 
-    public Vector3 ClosestPointOnTargetSurface()
-    {
-        if (currentDashTarget == null) return Vector3.zero;
-
-        Vector3 targetToPlayer = (transform.position - currentDashTarget.transform.position).normalized;
-        Vector3 targetSurface = currentDashTarget.transform.position + targetToPlayer * currentDashTarget.drillAttachRadius;
-        
-        return targetSurface;
-        
-    }
-
     public enum DashStage
     {
-        SlowDown,
         HighSpeed,
         Finished
     }
@@ -99,16 +75,35 @@ public class TargetedDash : MonoBehaviour
     private bool hasHitEnemy;
 
     private Coroutine currentDashRoutine;
+    private GrapplePoint grapplePointUI;
+    private bool isGrapplePointActive = false;
+    private bool isGrappleDone = true;
+
+    [SerializeField] private bool bIgnoreCameraAngle = false;
 
     void Awake()
     {
-        targetPointMask = LayerMask.GetMask("EnemyTargetPoint");
+        targetPointMask = LayerMask.GetMask("GrappleTargetPoint");
         queryResult = new Collider[30];
         SceneManager.sceneLoaded += EnableDash;
     }
 
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= EnableDash;
+    }
+
     private void EnableDash(Scene scene, LoadSceneMode mode)
     {
+        grapplePointUI = HUDManager.Instance.GetGrapplePoint();
+        // Debug.LogError(grapplePointUI);
+        if (grapplePointUI == null)
+        {
+            DashEnabled = false;
+            Debug.LogError("Grapple Point UI Not Found, DISABLE Dash");
+            return;
+        }
+        
         DashEnabled = true;
     }
 
@@ -122,35 +117,63 @@ public class TargetedDash : MonoBehaviour
             // This is unsetting the dash target every frame as well...
             if (currentDashTarget != null)
             {
+                // grapplePointUI.UnsetNewDashTarget();
+                // grapplePointUI.FadeOutDashable();
                 currentDashTarget.UnsetAsTarget();
+                
+                // grapplePointUI.UnsetNewDashTarget();
+                // grapplePointUI.DoGrapplePointFadeOut();
+                // isGrapplePointActive = false;
             }
             if (newDashTarget != null)
             {
                 newDashTarget.SetAsTarget(actualDashableRadius);
-            }
 
+                if (grapplePointUI != null)
+                {
+                    grapplePointUI.SetNewDashTarget(newDashTarget.gameObject);
+                }
+                else
+                {
+                    grapplePointUI = HUDManager.Instance.GetGrapplePoint();
+                    grapplePointUI.SetNewDashTarget(newDashTarget.gameObject);
+                }
+            }
+            
             currentDashTarget = newDashTarget;
 
-            // TODO: Uncomment for dash trajectory line
-            // if (currentTrajectoryLine != null)
-            // {
-            //     currentTrajectoryLine.OnDashTargetChanged();
-            // }
-            
-            // Set up line visual towards this dash target
-            //currentTrajectoryLine = Instantiate(trajectoryLinePrefab).GetComponent<DashTrajectoryLine>();
         }
-        
-        // if (currentDashTarget != null)
-        // {
-        //     currentTrajectoryLine.SetPositions(transform.position, currentDashTarget.transform.position);
-        // }
 
-        if (currentDashTarget != null)
+        if (currentDashTarget != null && isGrappleDone)
         {
-            if (Vector3.Distance(currentDashTarget.transform.position, transform.position) < actualDashableRadius)
+            var dist = Vector3.Distance(currentDashTarget.transform.position, Ctx.gameObject.transform.position);
+            // For grapple UI
+            if (dist < potentialTargetRadius)
             {
-                // Debug.Log("enemy in dashable range");
+                if (!isGrapplePointActive)
+                {
+                    grapplePointUI.gameObject.SetActive(true);
+                    isGrapplePointActive = true;
+                    grapplePointUI.DoGrapplePointFadeIn();
+                }
+                
+                // Debug.Log("enemy in dashable range " + isGrapplePointActive);
+                if (isGrappleDone)
+                {
+                    grapplePointUI.gameObject.SetActive(true);
+                }
+            }
+            else
+            {
+                if (isGrapplePointActive)
+                {
+                    isGrapplePointActive = false;
+                    grapplePointUI.DoGrapplePointFadeOut();
+                }            
+            }
+            
+            if (dist < actualDashableRadius)
+            {
                 currentDashTarget.SetDashable();
             }
             else
@@ -163,96 +186,80 @@ public class TargetedDash : MonoBehaviour
         else
         {
             HUDManager.Instance.SetDisplayDashPrompt(false);
+            if (isGrapplePointActive)
+            {
+                isGrapplePointActive = false;
+                grapplePointUI.DoGrapplePointFadeOut();
+            }
         }
-        
     }
+
+    
     
     public bool CanPerformDash()
     {
-        
-        return currentDashTarget != null && Ctx.DrillixirManager.CanDash() && DashEnabled;
+        return currentDashTarget != null && isGrapplePointActive && DashEnabled;
     }
 
     public void PerformDash()
     {
+        // Fade out grapple point
+        // isGrapplePointActive = false;
+        // isGrappleDone = false;
+        // grapplePointUI.DoGrapplePointFadeOut();
+        grapplePointUI.StartSpinning();
+        
         currentDashTarget = GetDashTarget();
+        // Debug.Log("Perform Dash Call");
+        // Debug.Log(Vector3.Distance(transform.position, currentDashTarget.transform.position));
+        // Debug.Log(actualDashableRadius);
         if (Vector3.Distance(transform.position, currentDashTarget.transform.position) < actualDashableRadius)
         {
+            Debug.Log("Distance is dashable, starting dash coroutine");
             currentDashRoutine = StartCoroutine(DashCoroutine(currentDashTarget));
             // Store the angle at the start of the dash
             incomingAngle = GetDashAngle();
             directionToTarget = (currentDashTarget.transform.position - transform.position).normalized;
-            // Empty for now...
-            // Ctx.DrillixirManager.ConsumeDashDrillixir();
         }
+        
     }
     
     private IEnumerator DashCoroutine(DashTargetPoint dashTarget)
     {
+        Debug.Log("Inside Dash Coroutine");
+        if (dashTarget.OnDashedToPoint != null)
+        {
+            dashTarget.OnDashedToPoint();
+        }
         hasHitEnemy = false;
         // Aim the camera at the target
         Ctx.cameraStateMachine.SetToLookAtTarget(dashTarget.transform.position);
         
-        Vector3 slowdownVelocity = Ctx.PlayerPhysics.Velocity.normalized;
-        
-        // ********** FIRST STEP: SLOW THE PLAYER OVER TIME ************
-        // Goal for playerPhysics during this step: maintain direction of velocity from start of dash, but reduce magnitude to zero
-        currentDashStage = DashStage.SlowDown;
         float timeElapsed = 0; 
         
-        
-        
-        // First, tween player velocity to zero over 0.5 seconds
-        // Uncomment the following to enable the slowdown before dashing
-        // float initialSpeed = Ctx.PlayerPhysics.Velocity.magnitude;
-        // float currentSpeed = initialSpeed;
-        //
-        // while (timeElapsed < dashSlowdownTime)
-        // {
-        //     currentSpeed = Mathf.Lerp(initialSpeed, 0, timeElapsed / dashSlowdownTime);
-        //     Ctx.PlayerPhysics.SetVelocity(slowdownVelocity * currentSpeed);
-        //     timeElapsed += Time.deltaTime;
-        //     yield return null; // wait for the next frame
-        // }
-        //
-        // currentSpeed = 0; // ensure the final value is exactly zero
-        // Ctx.PlayerPhysics.SetVelocity(slowdownVelocity * currentSpeed);
-        //
-        // yield return new WaitForSeconds(postSlowdownPauseTime);
-        
-        // ********** SECOND STEP: MOVE AT HIGH VELOCITY STRAIGHT TOWARDS TARGET *********
         currentDashStage = DashStage.HighSpeed;
-        
-        // Vector3 dashDirection = (dashTarget.transform.position - transform.position).normalized;
-        //
-        //
-        // Vector3 dashVelocity = dashDirection * dashSpeed;
-        // Ctx.PlayerPhysics.SetVelocity(dashVelocity);
-        // RaycastHit hit;
-        // if (Physics.Raycast(transform.position, directionToTarget, out hit))
-        // {
-        //     if (!hit.transform.gameObject.CompareTag("Enemy"))
-        //     {
-        //         currentDashStage = DashStage.Finished;
-        //         yield break;
-        //     }
-        // }
-        // else
-        // {
-        //     currentDashStage = DashStage.Finished;
-        //     yield break;
-        // }
 
             // Spring based approach
         dashSpring.equilibriumPosition = dashTarget.transform.position;
         dashSpring.position = transform.position;
-        dashSpring.velocity = Ctx.PlayerPhysics.Velocity;
+        // TODO: Aidan commented this out and replaced it with the following line to avoid Bandit clipping into the ground
+        // dashSpring.velocity = Ctx.PlayerPhysics.Velocity;
+        dashSpring.velocity = Ctx.PlayerPhysics.Velocity * 0.5f;
+        // dashSpring.velocity = Vector3.zero;
         dashSpring.angularFrequency = startSpringFreq;
+        
+        hasPlayedImpactAnimation = false;
         
         while (currentDashStage == DashStage.HighSpeed)
         {
             dashSpring.equilibriumPosition = dashTarget.transform.position;
             timeElapsed += Time.deltaTime;
+            // if (timeElapsed >= 0.12f && !hasPlayedImpactAnimation)
+            if (timeElapsed >= 0.5f && !hasPlayedImpactAnimation)
+            {
+                Ctx.BanditAnimationController.PlayGrappleImpact();
+                hasPlayedImpactAnimation = true;
+            }
             // Debug.Log("current dash target position: " + dashTarget.transform.position);
             // Debug.Log("Current spring position" + dashSpring.position);
             // dashSpring.equilibriumPosition = dashTarget.transform.position;
@@ -260,7 +267,7 @@ public class TargetedDash : MonoBehaviour
             Ctx.PlayerPhysics.SetVelocity(dashSpring.velocity);
             yield return null;
         }
-        
+
     }
 
     private void OnDrawGizmos()
@@ -275,7 +282,7 @@ public class TargetedDash : MonoBehaviour
         // Target enemies within FOV
 
         // Overlap sphere non alloc to find enemies
-        int numEnemiesInRange = Physics.OverlapSphereNonAlloc(transform.position, potentialTargetRadius, queryResult, targetPointMask);
+        int numEnemiesInRange = Physics.OverlapSphereNonAlloc(transform.position, actualDashableRadius, queryResult, targetPointMask);
         
         // Debug.Log(numEnemiesInRange);
         
@@ -322,7 +329,8 @@ public class TargetedDash : MonoBehaviour
                     || hit.collider.gameObject.layer == 14
                     || hit.collider.gameObject.layer == 16)
                 {
-                    if (angle < dashTargetAngle)
+                    if (angle < dashTargetAngle
+                        || bIgnoreCameraAngle)
                     {
                         if (distance < closestDistance)
                         {
@@ -417,8 +425,7 @@ public class TargetedDash : MonoBehaviour
             }
 
             velocity = velocity.normalized * postDashSpeed;
-            // Debug.Log("Post dash speed " + velocity.magnitude);
-            // Debug.Log("Y component of post dash speed " + velocity.y);
+            
             return velocity;
         }
         
@@ -428,24 +435,69 @@ public class TargetedDash : MonoBehaviour
     public void ImpactEnemy()
     {
         currentDashStage = DashStage.Finished;       
-        // Ctx.PlayerPhysics.SetVelocity(Ctx.PlayerPhysics.Velocity.normalized * postDashSpeed);
         Ctx.PlayerPhysics.SetVelocity(GetResultantVelocity());
+        
+        isGrappleDone = true;
+    }
+    
+    public void ImpactGrapplePoint(DashTargetPoint grapplePoint)
+    {
+        currentDashStage = DashStage.Finished;
+        
+        if (!hasPlayedImpactAnimation)
+        {
+            Ctx.BanditAnimationController.PlayGrappleImpact();
+        }
+        
+        // Ctx.CharacterController.SetPosition(currentDashTarget.transform.position + Vector3.up * 10);
+        Ctx.PlayerPhysics.SetVelocity(GetResultantVelocity());
+        
+        isGrappleDone = true;
     }
 
     public void ImpactOther()
     {
-        currentDashStage = DashStage.Finished;       
+        currentDashStage = DashStage.Finished;
+
+        if (!hasPlayedImpactAnimation)
+        {
+            Ctx.BanditAnimationController.PlayGrappleImpact();
+        }
+        
         // Ctx.PlayerPhysics.SetVelocity(Ctx.PlayerPhysics.Velocity.normalized * postDashSpeed);
+        // TODO: I think setting the player position here could solve the inconsistent dash issue, but something else is
+        // teleporting the player so this line was having no effect. Will investigate.
+        // Ctx.CharacterController.SetPosition(currentDashTarget.transform.position + Vector3.up * 10);
         Ctx.PlayerPhysics.SetVelocity(GetResultantVelocity());
+        
+        
+        isGrappleDone = true;
     }
     
-    //Called to make sure the player resets properly in instances where they experience death without collision and therefore do not exit properly
+    // Called to make sure the player resets properly in instances where they experience death without collision and therefore do not exit properly
     public void EndDash()
     {
         currentDashStage = DashStage.Finished;
+        
         if (currentDashRoutine != null)
         {
             StopCoroutine(currentDashRoutine);
+            if (!hasPlayedImpactAnimation)
+            {
+                Ctx.BanditAnimationController.PlayGrappleImpact();
+            }
+        }
+        
+        isGrappleDone = true;
+
+        try
+        {
+            // Destroy(leftGrappleAttachMover.gameObject);
+            // Destroy(rightGrappleAttachMover.gameObject);
+        }
+        catch (Exception e)
+        {
+            // ignored
         }
     }
 

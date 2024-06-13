@@ -23,6 +23,14 @@ namespace __OasisBlitz.Camera.StateMachine.RootStates
             Ctx.rigChanger.SetOccluderMask(Ctx.largePenetrableMask);
             
             // TODO: This logic is only really relevant when entering large penetrable ground from above.
+            if (Ctx.InBurrow)
+            {
+                Debug.Log("Using burrow large penetrable rig");
+                Ctx.rigChanger.TweenToRig(Ctx.burrowLargePenetrableRig, 0.7f);
+                Debug.Log("HEIGHT " + Ctx.burrowLargePenetrableRig.middleHeight);
+                return;
+            }
+            
             if (Ctx.playerStateMachine.PlayerPhysics.Velocity.y < -1 * Ctx.DiveCameraVelocity)
             {
                 Ctx.rigChanger.TweenToRig(Ctx.diveLargePenetrableRig, 0.5f);

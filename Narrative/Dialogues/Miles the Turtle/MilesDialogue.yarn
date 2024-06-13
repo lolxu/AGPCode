@@ -1,28 +1,59 @@
-﻿title: MilesObjective
+﻿title: MilesOrdered3-0
 tags: 
 ---
-Miles: You are Bandit, yes? You can call me Miles. It is nice to meet you, hm!
-Miles: I may not know much about plants or monsters…
-Miles: But I have been around long enough to know a thing or two about this world.
-Miles: No rush, hm! Just pop by if you have the time…
-Miles: ...
-Miles: I really do miss what the planet once was. 
-Miles: To see it in its former glory would be a dream come true.
+// old man idle
+<<SetIdle 3DDialogue 0>>
+<<Intro Miles(Clone)>>
+// calm
+<<Emotion 3DDialogue 4>>
+Miles: You are Bandit, yes? You can call me Miles. It is nice to meet you, hm! #line:0517e9c 
+<<Emotion 3DDialogue 4>>
+Miles: I may not know much about plants, or monsters… #line:069d5a4 
+<<Emotion 3DDialogue 4>>
+Miles: But I have been around long enough to know a thing or two about this world. #line:0d96ad3 
+<<Emotion 3DDialogue 4>>
+Miles: No rush, hm! Just pop by if you have the time… #line:03b7bf8 
 ===
 
-title: MilesRandom
+title: MilesOrdered3-1
 tags: 
 ---
-Miles: I used to take walks around the surface. 
-Miles: Chat with the locals while out.
-Miles: I didn't have much to say, I just liked the chatter.
+// old man idle
+// calm
+<<Emotion 3DDialogue 4>>
+Miles: I have heard talk that you wish to visit the highest archipelago in the sky, the Oasis. #line:04578c5 
+<<Emotion 3DDialogue 4>>
+Miles: One can only dream of what you will find there. A land lush and green, hm? We will see. #line:09e3222 
+// surprised
+<<Emotion 3DDialogue 1>>
+Miles: But be warned!  #line:0b47138 
 ===
 
-title: MilesRandom2
+title: MilesOrdered3-2
 tags: 
 ---
-Miles: I miss the library.
-Miles: I read those slabs for hours and hours.
-Miles: Maybe some are still intact. 
-Miles: I can only hope.
+// old man idle
+<<SetIdle 3DDialogue 0>>
+// calm
+<<Emotion 3DDialogue 4>>
+Miles: The ancients built stone cannons to launch them onto the floating islands. #line:05dfee5 
+<<Emotion 3DDialogue 4>>
+Miles: Higher and higher they went, until they reached the source of all drillixir. #line:077cc7a 
+<<Emotion 3DDialogue 4>>
+Miles: A great temple was built around the wellspring, letting drillixir flow onto the land below. #line:0fbb6ed 
 ===
+
+title: MilesOrdered3-3
+tags: 
+---
+// old man idle
+<<SetIdle 3DDialogue 0>>
+// surprised
+<<Emotion 3DDialogue 1>>
+Miles: Thanks to the ancients, the land was lush and green… but the skies were furious. #line:0310ccc 
+<<Emotion 3DDialogue 1>>
+Miles: They had given all that critters would need, and the ancients responded with only greed. #line:089c5f2 
+<<Emotion 3DDialogue 1>>
+Miles: And so, they raised monsters just as insatiable - the geomites. You know the rest. #line:0203a87 
+===
+

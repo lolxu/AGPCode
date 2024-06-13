@@ -31,7 +31,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private CinemachineCamera cinemachineCamera;
 
     [SerializeField] private TextMeshProUGUI timerText;     // In HUD
-    [SerializeField] private Timer timer;
+    public Timer timer;
 
     [SerializeField] private GameObject SettingsObject;     // Exists from Main Menu, but spawn if it does not exist just in case
 
@@ -42,7 +42,7 @@ public class UIManager : MonoBehaviour
     public bool isPaused { get; private set; }
     
     // Boolean for forcing game to be able to pause or not
-    public bool canPauseGame { private get; set; } = true;
+    public bool canPauseGame { get; set; } = true;
 
 
     // Start is called before the first frame update
@@ -64,7 +64,7 @@ public class UIManager : MonoBehaviour
 
         Time.timeScale = 1.0f;
         if(!GameObject.Find("Settings")) { Instantiate(SettingsObject); }
-        if(!LoadScreen) { LoadScreen = GameObject.Find("LoadScreenCanvas").GetComponent<Canvas>(); }
+        if(!LoadScreen) { LoadScreen = GameObject.FindObjectOfType<LoadingScreen>().GetComponent<Canvas>(); }
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
@@ -73,12 +73,16 @@ public class UIManager : MonoBehaviour
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
+    public GameObject TimerText()
+    {
+        return timerText.gameObject;
+    }
+
     public void SetTimer()
     {
-        if (SceneManager.GetActiveScene().name.Contains("MainMenu") ||
-            SceneManager.GetActiveScene().name.Contains("Burrow") ||
-            SceneManager.GetActiveScene().name.Contains("Slideshow") ||
-            SceneManager.GetActiveScene().name.Contains("Onboard"))
+        if (SceneManager.GetActiveScene().name.ToLower().Contains("burrow") ||
+            SceneManager.GetActiveScene().name.ToLower().Contains("slideshow") ||
+            SceneManager.GetActiveScene().name.ToLower().Contains("onboard"))
         {
             HideTimer();
         }
@@ -86,6 +90,8 @@ public class UIManager : MonoBehaviour
         {
             // Do not show timer for first time runs through a level)
             XMLFileManager.Instance.Load();
+            timer.RestartTime();
+
             if (XMLFileManager.Instance.LookupPBTime(SceneManager.GetActiveScene().name) >= 0)
             {
                 DisplayTimer();
@@ -94,19 +100,24 @@ public class UIManager : MonoBehaviour
             {
                 HideTimer();
             }
-            timer.StartTime();
         }
+
+        timer.StartTime();
     }
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         canPauseGame = true;
+        HideTimer();
+
     }
+    
+    
 
     private void Update()
     {
         EditorOnlyAltRelease();
-        
-        timerText.text = timer.GetTime();
+
+        timerText.text = Timer.TimeToString(timer.runTime);
         // Debug.Log($"WALKING: {playerAudio.walking}");
     }
 
@@ -140,15 +151,15 @@ public class UIManager : MonoBehaviour
     private void SlidePauseOut()
     {
         //PauseObject.gameObject.transform.localPosition = new Vector2(960, 0);
+
         if (pauseTween != null) { pauseTween.Kill(false); }
         pauseTween = PauseObject.transform.DOLocalMove(new Vector2(-800, 0), tweenDuration)
             .SetUpdate(true)
-            .OnComplete(()=> {
+            .OnComplete(() => {
                 PauseMenu.gameObject.SetActive(false);
                 FinishUnpause();
-                }
+            }
             );
-        
     }
     public void PauseGame()
     {
@@ -157,7 +168,7 @@ public class UIManager : MonoBehaviour
 
         if (canPauseGame)
         {
-            playerAudio.StopWalkFromPause();
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.pause, transform.position);
             playerAudio.StopSlideFromPause();
             if (playerSM.IsSubmerged)
             {
@@ -175,7 +186,6 @@ public class UIManager : MonoBehaviour
             isPaused = true;
             HapticsManager.Instance.StopHapticsFromPause();
             SlidePauseIn();
-            //PauseMenu.gameObject.SetActive(true);
         }
     }
     public void UnpauseGame()
@@ -186,12 +196,28 @@ public class UIManager : MonoBehaviour
 
         GlobalSettings.Instance.SavePlayerPrefs();
         
-        playerAudio.StartWalkFromPause();
         playerAudio.StartSlideFromPause();
         if (playerSM.IsSubmerged) { playerAudio.StartDrill(); }
         // if (playerAudio.walking) { playerAudio.StartWalk(); }
-
-        SlidePauseOut();
+        if(PauseManager.Instance)
+        {
+            if (SettingsUI.Instance.settingsActive)
+            {
+                AudioManager.instance.PlayOneShot(FMODEvents.instance.buttonPress);
+                SettingsUI.Instance.SlideSettingsOut(() => 
+                {
+                    PauseManager.Instance.CloseSettings();
+                    SettingsUI.Instance.HideOpenSettings("all");
+                });
+                
+                return;
+            }
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.unPause, transform.position);
+            if (PauseManager.Instance.IsControlsDisplayActive()) { PauseManager.Instance.TweenControlsOut(FinishUnpause); }
+            SlidePauseOut();
+        }
+        
+        timer.PauseTime();
 
     }
     private void FinishUnpause()
@@ -203,6 +229,7 @@ public class UIManager : MonoBehaviour
         HUD.gameObject.SetActive(true);
         if (SettingsUI.Instance.settingsActive) { SettingsUI.Instance.HideSettings(); }
         isPaused = false;
+        timer.UnpauseTime();
         //PauseMenu.gameObject.SetActive(false);
     }
     public bool WinScreenActive()
@@ -211,10 +238,9 @@ public class UIManager : MonoBehaviour
     }
     public void Win(string subtext = "Level completed")
     {
-        Time.timeScale = 0.0f;
-        pInput.DisableCharacterControls();
-
-        playerAudio.StopWalk();
+        //Time.timeScale = 0.0f;
+        pInput.EnableUIControls();
+        
         if (playerSM.IsSubmerged) { playerAudio.StopDrill(); }
         if (GlobalSettings.Instance.controller == "KEYBOARD")
         {
@@ -230,12 +256,12 @@ public class UIManager : MonoBehaviour
     public void DisplayTimer()      // Display if hidden, hide if displayed
     {
         // Show timer
-        timerText.gameObject.SetActive(true);
+        HUDManager.Instance.ToggleTimerDisplay(true);
     }
 
     public void HideTimer()
     {
-        timerText.gameObject.SetActive(false);
+        HUDManager.Instance.ToggleTimerDisplay(false);
     }
     
     public void StartTime()
@@ -249,6 +275,7 @@ public class UIManager : MonoBehaviour
         {
             if (!isPaused)
             {
+                
                 timer.StartTime();
             }
         }
@@ -277,6 +304,6 @@ public class UIManager : MonoBehaviour
     {
         // LoadScreen.gameObject.SetActive(true);
         // LoadScreen.gameObject.GetComponent<LoadingScreen>().LoadScene(sceneName);
-        LevelManager.Instance.LoadAnySceneAsync(sceneName);
+        LevelManager.Instance.LoadAnySceneAsync(sceneName, false);
     }
 }

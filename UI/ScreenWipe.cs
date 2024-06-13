@@ -31,7 +31,7 @@ public class ScreenWipe : MonoBehaviour
     }
     public void WipeRight(Action callback = null)
     {
-        Debug.Log("WIPING RIGHT");
+        //Debug.Log("WIPING RIGHT");
         wipe.transform.localScale = new Vector3(1, 1, 1);
         wipe.fillAmount = 0;
         wipe.gameObject.SetActive(true);
@@ -40,7 +40,10 @@ public class ScreenWipe : MonoBehaviour
         wipeTween = wipe.DOFillAmount(1, TweenDuration)
             .OnComplete(() =>
             {
-                callback();
+                if (callback != null)
+                {
+                    callback();
+                }
             })
             .SetUpdate(true);
     }
@@ -71,20 +74,12 @@ public class ScreenWipe : MonoBehaviour
         wipeTween = wipe.DOFillAmount(0, TweenDuration)
             .OnComplete(() =>
             {
-                callback();
+                if (callback != null)
+                {
+                    callback();
+                }
             })
             .SetUpdate(true);
-        Debug.Log("CLEARED RIGHT");
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-
-    }
-    // Update is called once per frame
-    void Update()
-    {
-        
+        //Debug.Log("CLEARED RIGHT");
     }
 }

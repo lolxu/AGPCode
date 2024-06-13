@@ -1,23 +1,23 @@
 ﻿title: JetteObjectiveDialogue
 tags:
 ---
-Jette: ObjectiveText A
-Jette: ObjectiveText B
-Jette: ObjectiveText C
+Jette: ObjectiveText A #line:00a4111 
+Jette: ObjectiveText B #line:0efcfa4 
+Jette: ObjectiveText C #line:098d9e9 
 ===
 
 title: JetteRandomDialogue1
 tags:
 ---
-Jette: RandomDialogue1 A
-Jette: RandomDialogue1 B
-Jette: RandomDialogue1 C
+Jette: RandomDialogue1 A #line:0333acc 
+Jette: RandomDialogue1 B #line:08f8479 
+Jette: RandomDialogue1 C #line:07ad84e 
 ===
 
 title: JetteRandomDialogue2
 tags:
 ---
-Jette: RandomDialogue2 A
-Jette: RandomDialogue2 B
-Jette: RandomDialogue2 C
+Jette: RandomDialogue2 A #line:058484e 
+Jette: RandomDialogue2 B #line:0e8fa9e 
+Jette: RandomDialogue2 C #line:0a128e5 
 ===

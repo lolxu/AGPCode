@@ -4,24 +4,25 @@ using System.Collections.Generic;
 using __OasisBlitz.Player;
 using __OasisBlitz.Utility;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(LineRenderer))]
 public class GrappleLine : MonoBehaviour {
-    private LineRenderer lr;
+    public LineRenderer lineRenderer;
     public int quality;
     public float startVelocity;
     public float waveCount;
     public float waveHeight;
     public AnimationCurve affectCurve;
 
-    public ProjectileDrill drill;
-    public Transform gauntletAttachPoint;
+    public Transform targetAttachPoint;
+    public Transform banditAttachPoint;
     public Spring1D spring;
 
     private bool grappling;
     
-    void Awake() {
-        lr = GetComponent<LineRenderer>();
+    void Start() {
+        Reset();
     }
 
     private void LateUpdate()
@@ -39,25 +40,36 @@ public class GrappleLine : MonoBehaviour {
     public void DrawRope() {
         //If not grappling, don't draw rope
 
-        if (lr.positionCount == 0) {
-            lr.positionCount = quality + 1;
+        if (lineRenderer.positionCount == 0) {
+            lineRenderer.positionCount = quality + 1;
         }
-        
-        var grapplePoint = drill.GetGrapplePoint();
-        var attachPoint = gauntletAttachPoint.position;
-        var up = Quaternion.LookRotation((grapplePoint - attachPoint).normalized) * Vector3.up;
 
-        for (var i = 0; i < quality + 1; i++) {
-            var delta = i / (float) quality;
-            var offset = up * (waveHeight * Mathf.Sin(delta * waveCount * Mathf.PI) * spring.position * affectCurve.Evaluate(delta));
-            
-            lr.SetPosition(i, Vector3.Lerp(attachPoint, grapplePoint, delta) + offset);
+        try
+        {
+            var targetPoint = targetAttachPoint.position;
+            var gauntletPoint = banditAttachPoint.position;
+
+
+            var up = Quaternion.LookRotation((targetPoint - gauntletPoint).normalized) * Vector3.up;
+
+            for (var i = 0; i < quality + 1; i++)
+            {
+                var delta = i / (float)quality;
+                var offset = up * (waveHeight * Mathf.Sin(delta * waveCount * Mathf.PI) * spring.position *
+                                   affectCurve.Evaluate(delta));
+
+                lineRenderer.SetPosition(i, Vector3.Lerp(gauntletPoint, targetPoint, delta) + offset);
+            }
+        }
+        catch (Exception e)
+        {
+            return;
         }
     }
 
     void Reset()
     {
-        lr.positionCount = 0;
+        lineRenderer.positionCount = 0;
     }
 
     public void StartGrapple()

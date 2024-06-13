@@ -31,9 +31,6 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
 
         public override void EnterState()
         {
-            // Ctx.Animator.SetBool(Ctx.IsWalkingHash, true);
-            // Ctx.Animator.SetBool(Ctx.IsRunningHash, true);
-            // Debug.Log("Enter drill");
             InitializeSubState();
 
             // Ctx.BanditAnimationController.PlayDrill();
@@ -41,7 +38,8 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
             Ctx.CharacterController.CollisionMode = CollisionMode.Drilling;
 
             // Make the player model point in the direction of the drill
-            Ctx.ModelRotator.OnStartDrilling();
+            // Ctx.ModelRotator.OnStartDrilling();
+            Ctx.BanditAnimationController.PlayFlipIntoDrill();
 
             
             Ctx.PlayerAudio.StartDrill();
@@ -82,25 +80,14 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
 
             // Ctx.DrillixirManager.TickDrillixirConsume(Time.deltaTime);
 
-            // Ctx.PlayerPhysics.AddAcceleration(Ctx.CurrentMovementInputWorld * Ctx.DrillSpeed);
-            if (Ctx.PlayerPhysics.isStuckTimer > 0f)//stuck velocity is always zero.  We want the player to face in the direction of whatever it stuck into
-            {
-                Ctx.Drill.SetDirection(Ctx.PlayerPhysics.VelocityBeforeStuck);
-                // Ctx.ModelRotator.SetFullDirection(Ctx.PlayerPhysics.VelocityBeforeStuck);
-            }
-            else
-            {
-                Ctx.Drill.SetDirection(Ctx.PlayerPhysics.Velocity);
-                // Ctx.ModelRotator.SetFullDirection(Ctx.PlayerPhysics.Velocity);
-            }
-
         }
 
         public override void ExitState()
         {
             Ctx.CharacterController.CollisionMode = CollisionMode.Default;
 
-            Ctx.ModelRotator.OnStopDrilling();
+            // Ctx.ModelRotator.OnStopDrilling();
+            Ctx.BanditAnimationController.PlayFlipOutOfDrill();
 
             // TODO: Much of this could be rolled into the "UnformDrill" code
             Ctx.PlayerAudio.StopDrill();
@@ -116,9 +103,12 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
         public override void CheckSwitchStates()
         {
             // Only allow switching when above ground
-            if (Ctx.TargetedDashRequested && Ctx.TargetedDash.CanPerformDash())
+            if (Ctx.TargetedDashRequested 
+                && Ctx.TargetedDash.CanPerformDash()
+                && !Ctx.RequireNewTargetedDashPress)
             {
                 // This comes before the switch because the behavior of exit state on grounded depends upon whether the dash is performed
+                Ctx.RequireNewTargetedDashPress = true;
                 Ctx.ModelRotator.OnDash(Ctx.TargetedDash.TargetPosition());
                 SwitchState(Factory.Dash());
             }
@@ -126,15 +116,6 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
             {
                 return;
             }
-            // TODO: Removing this during the drillixir refactor
-            // else if (Ctx.DrillixirManager.CurrentDrillixir == 0)
-            // {
-            //     SwitchState(Factory.FreeFall());
-            // }
-            // else if (submergedLastFrame && !Ctx.IsSubmerged && !Ctx.DrillRequested)
-            // {
-            //     SwitchState(Factory.Ball());
-            // }
             else if (!Ctx.DrillRequested)
             {
                 SwitchState(Factory.FreeFall());

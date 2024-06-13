@@ -50,19 +50,19 @@ namespace __OasisBlitz.Player
 
         private void FixedUpdate()
         {
-            if (ctx.Drilling)
-            {
-                OasisDebugDraw.DrawSphere(ctx.transform.position, constantHitRadius, Color.red);
-                Collider[] hitColliders = UnityEngine.Physics.OverlapSphere(ctx.transform.position, constantHitRadius, blastLayerMask);
-                for(Int32 i = 0; i < hitColliders.Length; i++)
-                {
-                    Collider collider = hitColliders[i];
-                    if (collider.CompareTag("NewEnemy"))
-                    {
-                        collider.gameObject.GetComponent<HitPartOfNewEnemy>().CollideWithBody(ref collider);
-                    }
-                }
-            }   
+            // if (ctx.Drilling)
+            // {
+            //     OasisDebugDraw.DrawSphere(ctx.transform.position, constantHitRadius, Color.red);
+            //     Collider[] hitColliders = UnityEngine.Physics.OverlapSphere(ctx.transform.position, constantHitRadius, blastLayerMask);
+            //     for(Int32 i = 0; i < hitColliders.Length; i++)
+            //     {
+            //         Collider collider = hitColliders[i];
+            //         if (collider.CompareTag("NewEnemy"))
+            //         {
+            //             collider.gameObject.GetComponent<HitPartOfNewEnemy>().CollideWithBody(ref collider);
+            //         }
+            //     }
+            // }   
         }
 
         private void Update()

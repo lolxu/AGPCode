@@ -1,23 +1,23 @@
 ﻿title: NoodleObjectiveDialogue
 tags:
 ---
-Noodle: ObjectiveText A
-Noodle: ObjectiveText B
-Noodle: ObjectiveText C
+Noodle: ObjectiveText A #line:083e7a4 
+Noodle: ObjectiveText B #line:01b3c9b 
+Noodle: ObjectiveText C #line:06692af 
 ===
 
 title: NoodleRandomDialogue1
 tags:
 ---
-Noodle: RandomDialogue1 A
-Noodle: RandomDialogue1 B
-Noodle: RandomDialogue1 C
+Noodle: RandomDialogue1 A #line:053e4ab 
+Noodle: RandomDialogue1 B #line:06f96c3 
+Noodle: RandomDialogue1 C #line:032631b 
 ===
 
 title: NoodleRandomDialogue2
 tags:
 ---
-Noodle: RandomDialogue2 A
-Noodle: RandomDialogue2 B
-Noodle: RandomDialogue2 C
+Noodle: RandomDialogue2 A #line:0a83b29 
+Noodle: RandomDialogue2 B #line:05bee92 
+Noodle: RandomDialogue2 C #line:00373ae 
 ===

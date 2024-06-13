@@ -20,18 +20,17 @@ public class CritterManager : MonoBehaviour
     public CinemachineCamera dialogueCamera;
 
     private Critter mandatoryCritterInstance = null;
-
-    void Awake()
+    
+    private IEnumerator Start()
     {
+        yield return null;
+        yield return null;
         SpawnCorrectCritters();
-    }
-
-    private void Start()
-    {
         //Trigger mandatory dialogue
         if (mandatoryCritterInstance != null)
         {
-            StartMandatoryDialogue();
+            // TODO: After start of scene works, force mandatory critter dialogue at the correct time
+            // StartMandatoryDialogue();
         }
     }
 
@@ -53,20 +52,20 @@ public class CritterManager : MonoBehaviour
             
             otherCritters.Add(Critter.CritterName.Clover);
         }
-        else if (XMLFileManager.Instance.GetNumPlantsCollected() == 3)
-        {
-            mandatoryCritter = Critter.CritterName.Miles;
-            
-            otherCritters.Add(Critter.CritterName.Clover);
-            otherCritters.Add(Critter.CritterName.Juno);
-        }
+        // else if (XMLFileManager.Instance.GetNumPlantsCollected() == 3)
+        // {
+        //     mandatoryCritter = Critter.CritterName.Miles;
+        //     
+        //     otherCritters.Add(Critter.CritterName.Clover);
+        //     otherCritters.Add(Critter.CritterName.Juno);
+        // }
         else
         {
             spawnMandatoryCritter = false;
             
             otherCritters.Add(Critter.CritterName.Clover);
             otherCritters.Add(Critter.CritterName.Juno);
-            otherCritters.Add(Critter.CritterName.Miles);
+            ///otherCritters.Add(Critter.CritterName.Miles);
         }
 
         // Create and populate set of idle locations
@@ -82,14 +81,14 @@ public class CritterManager : MonoBehaviour
 
         if (spawnMandatoryCritter)
         {
-            mandatoryCritterInstance = SpawnCritter(mandatoryCritter, Critter.CritterState.Objective, mandatoryLocation).
+            mandatoryCritterInstance = SpawnCritter(mandatoryCritter, Critter.CritterState.Ordered, mandatoryLocation).
                 GetComponent<Critter>();
         }
         
         // Spawn the idle critters
         foreach (var critter in otherCritters)
         {
-            SpawnCritter(critter, Critter.CritterState.Random, idleLocationsList.RemoveRandom());
+            SpawnCritter(critter, Critter.CritterState.Ordered, idleLocationsList.RemoveRandom());
         }
         
     }
@@ -100,7 +99,7 @@ public class CritterManager : MonoBehaviour
         GameObject critterPrefab = critterPrefabs[(int)critterName];
         
         // Instantiate it
-        GameObject critter = Instantiate(critterPrefab, location.transform.position, Quaternion.identity);
+        GameObject critter = Instantiate(critterPrefab, location.transform.position, location.transform.localRotation);
 
         Critter newCritterInstance = critter.GetComponent<Critter>();
         

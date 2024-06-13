@@ -36,11 +36,13 @@ public class ControllerSettings : MonoBehaviour
             if(HapticsEnabled)
             {
                 HapticsEnabled = false;
+                AudioManager.instance.ui_checkBoxState = false;
                 SetHapticsDisplay();
             }
             else
             {
                 HapticsEnabled = true;
+                AudioManager.instance.ui_checkBoxState = true;
                 SetHapticsDisplay();
             }
             PlayerPrefs.SetInt("Haptics", HapticsEnabled == true ? 1 : 0);
@@ -50,11 +52,13 @@ public class ControllerSettings : MonoBehaviour
             if (HapticsManager.Instance.HapticsEnabled)
             {
                 HapticsManager.Instance.HapticsEnabled = false;
+                AudioManager.instance.ui_checkBoxState = false;
                 SetHapticsDisplay();
             }
             else
             {
                 HapticsManager.Instance.HapticsEnabled = true;
+                AudioManager.instance.ui_checkBoxState = true;
                 SetHapticsDisplay();
             }
             PlayerPrefs.SetInt("Haptics", HapticsManager.Instance.HapticsEnabled ? 1 : 0);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using __OasisBlitz.__Scripts.Player.Environment.Checkpoints;
 using __OasisBlitz.Camera.StateMachine.Subroutines;
@@ -15,6 +16,14 @@ using UnityEngine.UIElements;
 
 namespace __OasisBlitz.Camera.StateMachine
 {
+    public enum CinematicsType
+    {
+        StartPan,
+        PlantPan,
+        DeathPan,
+        CinematicsPan
+    }
+    
     public class CameraStateMachine : MonoBehaviour
     {
         /// <summary>
@@ -46,6 +55,7 @@ namespace __OasisBlitz.Camera.StateMachine
         public CameraRigValues diveLargePenetrableRig;
         public CameraRigValues noDiveLargePenetrableRig;
         public CameraRigValues fullLookAtTargetRig;
+        public CameraRigValues burrowLargePenetrableRig;
 
         [Header("Layer Masks")] 
         public LayerMask surfaceMask;
@@ -54,7 +64,10 @@ namespace __OasisBlitz.Camera.StateMachine
 
         [Header("Camera Reference")] 
         public CinemachineCamera freeLookCam;
-        public CinemachineCamera cinematicsCam;
+        public List<CinemachineCamera> cinematicsCameras;
+        public CinemachineCamera currentActiveCinematicsCam;
+        public int currentActiveCinematicsCamIndex;
+        public UnityEngine.Camera uiCam;
 
         [Header("Restart Related")]
         private CinemachineOrbitalFollow _orbitalFollow;
@@ -98,7 +111,17 @@ namespace __OasisBlitz.Camera.StateMachine
         
         [Header("Dive Camera Settings")]
         public float DiveCameraVelocity = 30f;
+        
+        public Action OnCinematicsOver;
 
+        // TODO: KILL THIS, I ONLY PUT IT HERE TO FIX THE BURROW CAM WITHOUT CHANGING SCENE ESSENTIALS AHHHH
+        public bool InBurrow { get; private set; }
+        
+        public CinemachineDeoccluder _deoccluder;
+        
+        [SerializeField] private LevelNames levelNames;
+        
+        
 
         void Awake()
         {
@@ -116,6 +139,7 @@ namespace __OasisBlitz.Camera.StateMachine
             diveLargePenetrableRig.InitArray();
             noDiveLargePenetrableRig.InitArray();
             fullLookAtTargetRig.InitArray();
+            burrowLargePenetrableRig.InitArray();
             
             // setup state
             states = new CameraStateFactory(this);
@@ -127,18 +151,38 @@ namespace __OasisBlitz.Camera.StateMachine
             ResetHorizontalAxis();
             ResetVerticalAxis();
 
+            currentActiveCinematicsCam = cinematicsCameras[0];
+            currentActiveCinematicsCamIndex = 0;
+
             SceneManager.sceneLoaded += SwitchToCinematicsCameraOnSceneLoaded;
+            SceneManager.sceneLoaded += CheckIfInBurrow;
+        }
+        
+        private void CheckIfInBurrow(Scene scene, LoadSceneMode mode)
+        {
+            Debug.Log("Checking if in burrow");
+            
+            // TODO: Kill this also
+            if (scene.name == levelNames.BurrowSceneName)
+            {
+                Debug.Log("In burrow");
+                InBurrow = true;
+                
+                if (_deoccluder) _deoccluder.enabled = false;
+            }
+            else
+            {
+                Debug.Log("Not in burrow");
+                InBurrow = false;
+                if (_deoccluder) _deoccluder.enabled = true;
+            }
         }
 
         private void SwitchToCinematicsCameraOnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            CurrentState.ExitState();
-            CurrentState = states.LevelPanCamera();
-            CurrentState.EnterState();
-            Debug.Log("Cinematics on scene loaded");
             if (cinematicsCamRoutine)
             {
-                StartCoroutine(cinematicsCamRoutine.CinematicsCameraRoutine(0));
+                SwitchToCinematicsCamera(CinematicsType.StartPan);
             }
             else
             {
@@ -147,12 +191,17 @@ namespace __OasisBlitz.Camera.StateMachine
             
         }
 
-        public void SwitchToCinematicsCamera(int type)
+        public void SwitchToCinematicsCamera(CinematicsType type)
         {
-            CurrentState.ExitState();
-            CurrentState = states.LevelPanCamera();
-            CurrentState.EnterState();
+            HUDManager.Instance.ToggleAdaptiveHud(false);
+            CurrentState.SwitchState(CurrentState.Factory.CinematicsCamera());
             StartCoroutine(cinematicsCamRoutine.CinematicsCameraRoutine(type));
+        }
+
+        public void ResetToSurfaceDefaultCamera()
+        {
+            // Debug.LogError("Switching back to surface default");
+            CurrentState.SwitchState(CurrentState.Factory.SurfaceDefault());
         }
 
         public void ResetVerticalAxis()
@@ -381,9 +430,9 @@ namespace __OasisBlitz.Camera.StateMachine
         /// <summary>
         /// Function to skip cinematics
         /// </summary>
-        public void StopCameraCinematics()
+        public void StopCameraCinematics(bool needsCut)
         {
-            cinematicsCamRoutine.StopCameraPan();
+            cinematicsCamRoutine.StopCameraPan(needsCut);
         }
         
     }

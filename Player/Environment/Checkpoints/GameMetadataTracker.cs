@@ -99,12 +99,15 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Checkpoints
 
         public void ResetAllCheckpointForLevel(String sceneName)
         {
-            if (_allCheckpointMetaData.TryGetValue(sceneName, out var value))
-            {
-                value.Clear();
-                _lastLocationInLevel[sceneName].Clear();
-                _destructibleCheckpointsMetaData[sceneName].Clear();
-            }
+            // if (_allCheckpointMetaData.TryGetValue(sceneName, out var value))
+            // {
+            //     value.Clear();
+            //     _lastLocationInLevel[sceneName].Clear();
+            //     _destructibleCheckpointsMetaData[sceneName].Clear();
+            // }
+            _lastLocationInLevel.Clear();
+            _destructibleCheckpointsMetaData.Clear();
+            _allCheckpointMetaData.Clear();
         }
         
         public void AddToCheckpoints(String sceneName, GameObject checkpoint)

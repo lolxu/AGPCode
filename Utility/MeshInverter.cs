@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace __OasisBlitz.Utility
@@ -15,32 +16,41 @@ namespace __OasisBlitz.Utility
 
         public static Mesh InvertMesh(Mesh originalMesh)
         {
-            Mesh invertedMesh = new Mesh();
-
-            // Copy vertices, normals, uv, etc.
-            invertedMesh.vertices = originalMesh.vertices;
-            invertedMesh.normals = originalMesh.normals;
-            invertedMesh.uv = originalMesh.uv;
-            invertedMesh.colors = originalMesh.colors;
-
-            // Invert triangle winding order
-            for (int subMesh = 0; subMesh < originalMesh.subMeshCount; subMesh++)
+            try
             {
-                int[] triangles = originalMesh.GetTriangles(subMesh);
-                for (int i = 0; i < triangles.Length; i += 3)
+                Mesh invertedMesh = new Mesh();
+
+                // Copy vertices, normals, uv, etc.
+                invertedMesh.vertices = originalMesh.vertices;
+                invertedMesh.normals = originalMesh.normals;
+                invertedMesh.uv = originalMesh.uv;
+                invertedMesh.colors = originalMesh.colors;
+
+                // Invert triangle winding order
+                for (int subMesh = 0; subMesh < originalMesh.subMeshCount; subMesh++)
                 {
-                    int temp = triangles[i + 0];
-                    triangles[i + 0] = triangles[i + 1];
-                    triangles[i + 1] = temp;
+                    int[] triangles = originalMesh.GetTriangles(subMesh);
+                    for (int i = 0; i < triangles.Length; i += 3)
+                    {
+                        int temp = triangles[i + 0];
+                        triangles[i + 0] = triangles[i + 1];
+                        triangles[i + 1] = temp;
+                    }
+
+                    invertedMesh.SetTriangles(triangles, subMesh);
                 }
-                invertedMesh.SetTriangles(triangles, subMesh);
+
+                // Recalculate bounds and normals (if needed)
+                invertedMesh.RecalculateBounds();
+                invertedMesh.RecalculateNormals();
+
+                return invertedMesh;
             }
-
-            // Recalculate bounds and normals (if needed)
-            invertedMesh.RecalculateBounds();
-            invertedMesh.RecalculateNormals();
-
-            return invertedMesh;
+            catch (Exception e)
+            {
+                return null;
+            }
+            
         }
     }
 }

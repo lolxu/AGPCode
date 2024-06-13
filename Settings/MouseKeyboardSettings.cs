@@ -17,13 +17,13 @@ public class MouseKeyboardSettings : MonoBehaviour
 
     public void InvertX()
     {
-        if (MovementSettings.Instance.InvertX()) { invertedX.SetActive(true); }
-        else { invertedX.SetActive(false); }
+        if (MovementSettings.Instance.InvertX()) { invertedX.SetActive(true); AudioManager.instance.ui_checkBoxState = true; }
+        else { invertedX.SetActive(false); AudioManager.instance.ui_checkBoxState = false; }
     }
     public void InvertY()
     {
-        if (MovementSettings.Instance.InvertY()) { invertedY.SetActive(true); }
-        else { invertedY.SetActive(false); }
+        if (MovementSettings.Instance.InvertY()) { invertedY.SetActive(true); AudioManager.instance.ui_checkBoxState = true; }
+        else { invertedY.SetActive(false); AudioManager.instance.ui_checkBoxState = false; }
     }
     public void SetInvertDisplays()
     {

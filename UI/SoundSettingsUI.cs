@@ -45,6 +45,7 @@ public class SoundSettingsUI : MonoBehaviour
     public void OnMasterSliderChanged()
     {
         SoundSettings.Instance.SetMasterVolume((int)masterS.value);
+        AudioManager.instance.ui_sliderVal = (int)masterS.value;
     }
     public void IncMasterVolume()
     {
@@ -61,6 +62,7 @@ public class SoundSettingsUI : MonoBehaviour
     public void OnMusicSliderChanged()
     {
         SoundSettings.Instance.SetMusicVolume((int)musicS.value);
+        AudioManager.instance.ui_sliderVal = (int)musicS.value;
     }
     public void IncMusicVolume()
     {
@@ -77,6 +79,7 @@ public class SoundSettingsUI : MonoBehaviour
     public void OnPlayerSliderChanged()
     {
         SoundSettings.Instance.SetPlayerVolume((int)playerS.value);
+        AudioManager.instance.ui_sliderVal = (int)playerS.value;
     }
     public void IncPlayerVolume()
     {
@@ -93,6 +96,7 @@ public class SoundSettingsUI : MonoBehaviour
     public void OnEnemySliderChanged()
     {
         SoundSettings.Instance.SetEnemyVolume((int)enemyS.value);
+        AudioManager.instance.ui_sliderVal = (int)enemyS.value;
     }
     public void IncEnemyVolume()
     {
@@ -109,6 +113,7 @@ public class SoundSettingsUI : MonoBehaviour
     public void OnEnvironmentSliderChanged()
     {
         SoundSettings.Instance.SetEnvironmentVolume((int)environmentS.value);
+        AudioManager.instance.ui_sliderVal = (int)environmentS.value;
     }
     public void IncEnvironmentVolume()
     {
@@ -125,6 +130,7 @@ public class SoundSettingsUI : MonoBehaviour
     public void OnUISliderChanged()
     {
         SoundSettings.Instance.SetUIVolume((int)uiS.value);
+        AudioManager.instance.ui_sliderVal = (int)uiS.value;
     }
     public void IncUIVolume()
     {

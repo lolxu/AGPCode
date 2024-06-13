@@ -1,12 +1,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using __OasisBlitz.__Scripts.FEEL;
+using __OasisBlitz.__Scripts.Player.Environment.Checkpoints;
 using __OasisBlitz.__Scripts.Player.Environment.Fruits;
 using __OasisBlitz.Camera.StateMachine;
 using __OasisBlitz.Enemy;
 using __OasisBlitz.Player.Animation;
 using __OasisBlitz.Player.Gauntlets;
 using __OasisBlitz.Player.Physics;
+using __OasisBlitz.Utility;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -17,19 +20,19 @@ namespace __OasisBlitz.Player.StateMachine
     [RequireComponent(typeof(DrillChecker))]
     [RequireComponent(typeof(PlayerPhysics))]
     [RequireComponent(typeof(PlayerAudio))]
-    [RequireComponent(typeof(DrillixirManager))]
     [RequireComponent(typeof(PlayerFeedbacks))]
     public class PlayerStateMachine : MonoBehaviour
     {
         // ************************************ CORE COMPONENTS ************************************
         public CharacterController CharacterController { get; set; }
         public DrillChecker DrillChecker { get; set; }
-        public DrillixirManager DrillixirManager { get; private set; }
         public BanditAnimationController BanditAnimationController;
         public PlayerAudio PlayerAudio { get; private set; }
         public PlayerPhysics PlayerPhysics;
         public PlayerFeedbacks PlayerFeedbacks { get; private set; }
         public GauntletManager GauntletManager { get; private set; }
+
+        public LevelNames LevelNames;
         
         // ************* ASSIGNED IN INSPECTOR *******************
         public ModelRotator ModelRotator;
@@ -38,7 +41,6 @@ namespace __OasisBlitz.Player.StateMachine
         public TargetedDash TargetedDash;
         public DrillBehavior Drill;
         public ModelSquasher ModelSquasher;
-        public List<GameObject> ModelComponents;
 
         public CameraStateMachine cameraStateMachine;
 
@@ -59,6 +61,9 @@ namespace __OasisBlitz.Player.StateMachine
         public bool DrillReleased { get; set; } = true;
 
         public bool DrillLocked { get; private set; } = false;
+
+        public GameObject DrillMesh;
+        public GameObject DrillMeshInstance { get; private set; } = null;
 
         public bool IsSubmerged { get; set; }
 
@@ -142,9 +147,17 @@ namespace __OasisBlitz.Player.StateMachine
 
         public bool bForceDrillDown = false;
 
+        public bool bInvincible = false;
+
+        public bool bForceDrillAboveGravity = false;
+
         [HideInInspector] public bool OnSlipperySurface = false;
         
+        private bool GrappleDownLastFrame = false;
 
+        public bool InWaterTrigger = false;
+
+        public bool IsCelebrating = false;
 
         /// <summary>
         /// The current movement input from the player, in world space.
@@ -160,12 +173,14 @@ namespace __OasisBlitz.Player.StateMachine
             // initially set reference variables
             CharacterController = GetComponent<CharacterController>();
             DrillChecker = GetComponent<DrillChecker>();
-            DrillixirManager = GetComponent<DrillixirManager>();
             PlayerAudio = GetComponent<PlayerAudio>();
             PlayerFeedbacks = GetComponent<PlayerFeedbacks>();
             PlayerPhysics = GetComponent<PlayerPhysics>();
             GauntletManager = GetComponent<GauntletManager>();
 
+            // DrillMeshInstance = Instantiate(DrillMesh);
+            // DrillMeshInstance.SetActive(false);
+            
             // setup state
             states = new PlayerStateFactory(this);
             CurrentState = states.Grounded();
@@ -182,7 +197,17 @@ namespace __OasisBlitz.Player.StateMachine
             }
 
             // Overriding blast things
-            BounceAbility.Instance.BounceEnabled = XMLFileManager.Instance.GetBlastStatus();
+            // BounceAbility.Instance.BounceEnabled = XMLFileManager.Instance.GetBlastStatus();
+            // BLAST IS ALWAYS ENABLED
+            BounceAbility.Instance.BounceEnabled = true;
+        }
+
+        private IEnumerator YieldToInit()
+        {
+            
+            yield return null;
+            
+            
         }
 
         private void Start()
@@ -202,7 +227,6 @@ namespace __OasisBlitz.Player.StateMachine
             // BanditAnimationController.proceduralRun.OnFootPlant -= () => PlayerAudio.PlayFootstep(PlayerPhysics.CurrentOnSurfaceType);
             SceneManager.sceneLoaded -= InitializeAbilities;
         }
-        
 
         /// <summary>
         /// This is called in Update so as to not miss any inputs
@@ -225,15 +249,21 @@ namespace __OasisBlitz.Player.StateMachine
             {
                 RequireNewJumpPress = false;
             }
+            
+            
 
-            if (inputs.TargetedDashDown && ToggleTargetedDash)
+            if (inputs.TargetedDashDown 
+                && ToggleTargetedDash
+                && !GrappleDownLastFrame)
             {
                 TargetedDashRequested = true;
             }
-            if (!TargetedDashRequested)
+            if (!inputs.TargetedDashDown)
             {
                 RequireNewTargetedDashPress = false;
             }
+
+            GrappleDownLastFrame = inputs.TargetedDashDown;
 
             if (inputs.SurgeJumpDown)
             {
@@ -326,7 +356,11 @@ namespace __OasisBlitz.Player.StateMachine
         public void InstantKill()
         {
             if (DebugCommandsManager.Instance.godModeStatus()) { return; }       // If God Mode is on -- do not kill
-
+            if (bInvincible)
+            {
+                return;
+            }
+            
             Debug.Log("Instant kill");
             if (!IsDead)
             {
@@ -339,7 +373,11 @@ namespace __OasisBlitz.Player.StateMachine
         public void InstantKillByDeathBarrier()
         {
             if (DebugCommandsManager.Instance.godModeStatus()) { return; }       // If God Mode is on -- do not kill
-
+            if (bInvincible)
+            {
+                return; 
+            }
+            
             if (!IsDead)
             {
                 DeathByBarrier = true;
@@ -357,5 +395,62 @@ namespace __OasisBlitz.Player.StateMachine
             DeathByBarrier = false;
         }
 
+        /// <summary>
+        /// Disables All Character Related Movements
+        /// </summary>
+        public void DisableCharacterMovements()
+        {
+            ToggleDrill = false;
+            ToggleWalk = false;
+            ToggleJump = false;
+        }
+        
+        public void EnableCharacterMovements()
+        {
+            ToggleDrill = true;
+            ToggleWalk = true;
+            ToggleJump = true;
+        }
+
+        public void ForceEnterDrillState()
+        {
+            Debug.Log("Force enter Drill State");
+            ToggleDrill = true;
+            bForceDrillDown = true;
+            bInvincible = true;
+            bForceDrillAboveGravity = true;
+            if (SceneManager.GetActiveScene().name == LevelNames.WinningSceneName)
+            {
+                XMLFileManager.Instance.SaveEndingCutsceneNeedToView();
+            }
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.levelEndDrillDown);
+            StartCoroutine(UnsetForceDrill());
+        }
+
+        private IEnumerator UnsetForceDrill()
+        {
+            yield return new WaitForSeconds(1.0f);
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.resetDrill);
+            bForceDrillDown = false;
+            bForceDrillAboveGravity = false;
+        }
+
+        public void PlayLeftWalkParticles()
+        {
+            if (!InWaterTrigger)
+            {
+                FeelEnvironmentalManager.Instance
+                    .PlayWalkFeedback(ModelRotator.leftFootTransform.position, 1.0f);
+            }
+        }
+
+        public void PlayRightWalkParticles()
+        {
+            if (!InWaterTrigger)
+            {
+                FeelEnvironmentalManager.Instance
+                    .PlayWalkFeedback(ModelRotator.rightFootTransform.position, 1.0f);
+            }
+        }
     }
 }

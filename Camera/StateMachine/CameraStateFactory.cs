@@ -11,7 +11,7 @@ namespace __OasisBlitz.Camera.StateMachine
     SurfaceAscending,
     DiveLargePenetrable,
     DiveSmallPenetrable,
-    LevelPanCamera
+    CinematicsCamera
   }
 
   public class CameraStateFactory
@@ -27,7 +27,7 @@ namespace __OasisBlitz.Camera.StateMachine
       states[CameraStates.SurfaceAscending] = new SurfaceAscendingState(context, this);
       states[CameraStates.DiveLargePenetrable] = new DiveLargePenetrableState(context, this);
       states[CameraStates.DiveSmallPenetrable] = new DiveSmallPenetrableState(context, this);
-      states[CameraStates.LevelPanCamera] = new CinematicsCameraState(context, this);
+      states[CameraStates.CinematicsCamera] = new CinematicsCameraState(context, this);
 
     }
     
@@ -51,9 +51,9 @@ namespace __OasisBlitz.Camera.StateMachine
       return states[CameraStates.DiveSmallPenetrable];
     }
 
-    public CameraBaseState LevelPanCamera()
+    public CameraBaseState CinematicsCamera()
     {
-      return states[CameraStates.LevelPanCamera];
+      return states[CameraStates.CinematicsCamera];
     }
 
   }

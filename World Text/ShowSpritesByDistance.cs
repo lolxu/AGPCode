@@ -37,7 +37,7 @@ public class ShowSpritesByDistance : MonoBehaviour
     void Update()
     {
         if (isDisplaying) return;
-        
+
         float distance = Vector3.Distance(transform.position, player.transform.position);
         if (distance < maxDistance)
         {
@@ -53,5 +53,17 @@ public class ShowSpritesByDistance : MonoBehaviour
         }
 
         // Debug.Log(distance);
+    }
+
+    public void HideSprites()
+    {
+        foreach (var sprite in sprites)
+        {
+            sprite.DOFade(0f, animationTime / 2.0f);
+        }
+        foreach (var text in texts)
+        {
+            text.DOFade(0f, animationTime / 2.0f);
+        }
     }
 }

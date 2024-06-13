@@ -12,6 +12,7 @@ namespace __OasisBlitz.__Scripts.Player
     {
 
         public static DontDestroySceneEssentials Instance = null;
+        public LevelNames levelNames;
 
         private PlayerStateMachine ctx;
     
@@ -34,7 +35,15 @@ namespace __OasisBlitz.__Scripts.Player
         {
             yield return null;
             String sceneName = SceneManager.GetActiveScene().name;
-            if (sceneName != "Burrow")
+
+            GameObject startPoint = GameObject.FindGameObjectWithTag("StartPoint");
+
+            if (startPoint == null)
+            {
+                yield break;
+            }
+            
+            if (sceneName != levelNames.BurrowSceneName || sceneName != levelNames.MainMenuSceneName)
             {
                 if (GameMetadataTracker.Instance.GetAllCheckpoints(sceneName).Count == 0)
                 {

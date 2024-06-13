@@ -6,136 +6,74 @@ using FMOD.Studio;
 using System.Runtime.InteropServices;
 using System;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 
 public class AudioManager : MonoBehaviour
 {
+    public enum CritterEmotion
+    {
+        Upbeat, //Clover, Juno
+        Suprised, //Clover, Miles
+        Thinking, //Clover
+        Frustrated, //Clover. Juno
+        Calm, //Clover, Miles
+        Teaching, //Juno
+        Inspired, //Juno
+    }
+    
     [SerializeField] private List<EventInstance> _eventInstances;
+    [SerializeField] private List<EventInstance> _eventInstancesAlwaysActive;
     [SerializeField] private List<StudioEventEmitter> _eventEmitters;
-
-    private EventInstance _ambienceEventInstance;
-    private EventInstance _musicEventInstance;
+    private Dictionary<string, VCA> _vca;
+    private Dictionary<string, string> _vcaPath;
     private EventInstance _voiceEventInstance;
     private EventDescription _voiceEventDescription;
 
+    //subscribe to this whenever you need to initialize sound on scene change
+    public static Action onAudioSceneChange;
+
     private EventReference _currentMusicRef;
-    public bool allowPlayerSounds { private get; set; }
 
     public static AudioManager instance { get; private set; }
 
     public float musicCheckPoint = 0;
     private float musicCheckPointSet;
 
+    private VCA vca_Ambience, vca_Music, vca_SFX, vca_UI;
+
     private EVENT_CALLBACK beatCallback;
+
+
+    //UI
+    public bool ui_checkBoxState = true;
+    public int ui_sliderVal = 5;
 
     private void Awake()
     {
         if (instance != null)
         {
-            Debug.LogError("Found more than one Audio Manager in the scene");
+            // Debug.LogError("Found more than one Audio Manager in the scene");
             Destroy(gameObject);
+            return;
         }
         instance = this;
-        allowPlayerSounds = true;
         _eventInstances = new List<EventInstance>();
         _eventEmitters = new List<StudioEventEmitter>();
-    }
-
-    private void OnEnable()
-    {
-        SceneManager.sceneLoaded += HandleMusicAndAmbienceOnSceneChange;
-    }
-
-    private void OnDisable()
-    {
-        StopMusic();
-        StopAmbience();
-        CleanUp();
-        SceneManager.sceneLoaded -= HandleMusicAndAmbienceOnSceneChange;
-    }
-
-    private void HandleMusicAndAmbienceOnSceneChange(Scene scene, LoadSceneMode mode)
-    {
-        StopMusic();
-        StopAmbience();
-        CleanUp();
-
-        switch(scene.name)
-        {
-            case "MainMenu":
-                InitializeMusic(FMODEvents.instance.musicMainTheme);
-                break;
-            case "Burrow-New-Smaller":
-                InitializeMusic(FMODEvents.instance.musicBurrowTheme);
-                break;
-            case "Level 0 - Onboard Smaller":
-                allowPlayerSounds = false;
-                InitializeAmbience(FMODEvents.instance.desertAmbience);
-                _currentMusicRef = FMODEvents.instance.musicLevel1;
-                break;
-            case "Level 1 - Pillars Art Test":
-            case "Level 2 - Serpent 021324":
-            case "Level 3 - Temple - P1":
-            case "Level 3 - Temple - P2":
-                InitializeAmbience(FMODEvents.instance.desertAmbience);
-                InitializeMusic(FMODEvents.instance.musicLevel1);
-                break;
-        }
-
-        //if (scene.name == "BurrowWithCam")
-        //{
-        //    InitializeMusic(FMODEvents.instance.musicBurrowTheme);
-        //}
-        //else
-        //{
-        //    InitializeAmbience(FMODEvents.instance.desertAmbience);
-            
-        //    InitializeMusic(FMODEvents.instance.musicMainTheme);
-        //}
-    }
-    
-
-    public void StopAmbience()
-    {
-        if (_ambienceEventInstance.isValid())
-        {
-            _ambienceEventInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-        }
-    }
-
-    public void PlayMusic()
-    {
-        if (_musicEventInstance.isValid())
-        {
-            StopMusic();
-        }
-        InitializeMusic(_currentMusicRef);
-    }
-    public void StopMusic()
-    {
-        if (_musicEventInstance.isValid())
-        {
-            _musicEventInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-        }
-    }
-
-    private void InitializeAmbience(EventReference ambienceEventReference)
-    {
-        _ambienceEventInstance = CreateEventInstance(ambienceEventReference, this.transform);
-        _ambienceEventInstance.start();
-    }
-
-    private void InitializeMusic(EventReference musicEventReference)
-    {
-        musicCheckPointSet = musicCheckPoint;
-        _musicEventInstance = CreateEventInstance(musicEventReference, this.transform);
-        // beatCallback += BeatCallback;
-        // _musicEventInstance.setCallback(beatCallback, EVENT_CALLBACK_TYPE.TIMELINE_BEAT);
-        _musicEventInstance.start();
+        _vca = new Dictionary<string, VCA>();
+        _vcaPath = new Dictionary<string, string>();
+        InitVCA();
     }
 
     public void SetParameter(EventInstance instance, string parameterName, float parameterValue)
     {
         instance.setParameterByName(parameterName, parameterValue);
+    }
+
+    //Available channels: Ambience, Music, SFX, UI
+    public void SetVolume(string channel, float volume)
+    {
+        if (SetVCA(channel))
+            _vca[channel].setVolume(volume);
     }
 
     //Use this function to turn global Low-Pass Filter on/off (0 = off, 1 = on)
@@ -157,6 +95,28 @@ public class AudioManager : MonoBehaviour
         RuntimeManager.AttachInstanceToGameObject(eventInstance, transform);
         return eventInstance;
     }
+    
+    public EventInstance CreateEventInstance(EventReference eventReference)
+    {
+        EventInstance eventInstance = RuntimeManager.CreateInstance(eventReference);
+        _eventInstances.Add(eventInstance);
+        return eventInstance;
+    }
+    
+    public EventInstance CreateEventInstanceDDOL(EventReference eventReference, Transform transform)
+    {
+        EventInstance eventInstance = RuntimeManager.CreateInstance(eventReference);
+        _eventInstancesAlwaysActive.Add(eventInstance);
+        RuntimeManager.AttachInstanceToGameObject(eventInstance, transform);
+        return eventInstance;
+    }
+    
+    public EventInstance CreateEventInstanceDDOL(EventReference eventReference)
+    {
+        EventInstance eventInstance = RuntimeManager.CreateInstance(eventReference);
+        _eventInstancesAlwaysActive.Add(eventInstance);
+        return eventInstance;
+    }
 
     //Create an FMOD emitter componenet and attach to the gameObject to emitt sound
     public StudioEventEmitter InitializeStudioEventEmitter(EventReference eventReference, GameObject emitterGO)
@@ -168,6 +128,10 @@ public class AudioManager : MonoBehaviour
     }
 
     //Play a one off instance of a sound
+    public void PlayOneShot(EventReference sound, GameObject obj)
+    {
+        RuntimeManager.PlayOneShotAttached(sound, obj);
+    }
     public void PlayOneShot(EventReference sound, Vector3 pos)
     {
         RuntimeManager.PlayOneShot(sound, pos);
@@ -189,49 +153,178 @@ public class AudioManager : MonoBehaviour
         PlayOneShot(next ? FMODEvents.instance.dialogueNext : FMODEvents.instance.dialogueStart);
     }
 
-    //FMOD callback function, this should be call every beat
-    private FMOD.RESULT BeatCallback(EVENT_CALLBACK_TYPE type, IntPtr instance, IntPtr parameterPtr)
+    /*
+     * ====================================[WRAPPED BEHAVIOURS]===========================================
+     */
+
+    //UI
+
+    public void PlaySlider()
     {
-
-        if (type == EVENT_CALLBACK_TYPE.TIMELINE_BEAT)
+        if (ui_sliderVal == 0) PlaySliderMin();
+        else if (ui_sliderVal == 10) PlaySliderMax();
+        else
         {
-            TIMELINE_BEAT_PROPERTIES beatProperties =
-                (TIMELINE_BEAT_PROPERTIES)Marshal.PtrToStructure(parameterPtr, typeof(TIMELINE_BEAT_PROPERTIES));
+            if (!slider.isValid()) slider = instance.CreateEventInstance(FMODEvents.instance.sliderSet, this.gameObject.transform);
+            instance.SetParameter(slider, "UIsliderValue", ui_sliderVal);
+            Debug.Log("[AUDIO MANAGER] UI Slider: " + ui_sliderVal);
+            PlaySliderValue();
+        }
+    }
 
-            float bpm = beatProperties.tempo;
-            int bar = beatProperties.bar;
-            int beat = beatProperties.beat;
-            int position = beatProperties.position;
+    public void PlayCheckBox()
+    {
+        if (ui_checkBoxState) PlayCheckBoxOn();
+        else PlayCheckBoxOff();
+    }
 
-            //Debug.Log($"CheckPoint: {musicCheckPointSet}, Bar: {bar}, Beat: {beat}, Position: {position}");
+    public void CritterDialogueStart(Critter.CritterName critterName, AudioManager.CritterEmotion emotion, Transform t)
+    {
+        RuntimeManager.PlayOneShot(FMODEvents.instance.dialogueStart);
+        CritterDialogueNext(critterName, emotion, t);
+    }
 
-            if (musicCheckPointSet != musicCheckPoint && beat == 1 && bar%4 == 1)
+    public void CritterDialogueNext(Critter.CritterName critterName, AudioManager.CritterEmotion emotion, Transform t)
+    {
+        string label = emotion.ToString();
+        if (RuntimeManager.StudioSystem.setParameterByNameWithLabel("CritterEmotion", label) == FMOD.RESULT.OK)
+        {
+            switch (critterName)
             {
-                
-                musicCheckPointSet = musicCheckPoint;
-                
-                SetParameter(_musicEventInstance, "MusicCheckpoint3", musicCheckPointSet);
-                //Debug.Log("Set MusicCheckPoint " + musicCheckPointSet + currentPoint);
+                case Critter.CritterName.Clover:
+                    RuntimeManager.PlayOneShotAttached(FMODEvents.instance.cloverDialogue, t.gameObject);
+                    break;
+                case Critter.CritterName.Juno:
+                    RuntimeManager.PlayOneShotAttached(FMODEvents.instance.junoDialogue, t.gameObject);
+                    break;
+                case Critter.CritterName.Miles:
+                    RuntimeManager.PlayOneShotAttached(FMODEvents.instance.milesDialogue, t.gameObject);
+                    break;
             }
         }
-       
-        return FMOD.RESULT.OK;
+        else
+        {
+            Debug.LogWarning("[AUDIO MANAGER] Critter Emotion Set Falied");
+            RuntimeManager.PlayOneShotAttached(FMODEvents.instance.dialogueNext, t.gameObject);
+        }
+    }
+
+    public void CritterDialogueStop()
+    {
+        RuntimeManager.PlayOneShot(FMODEvents.instance.dialogueEnd);
+    }
+
+
+    /*
+     * ====================================[PRIVATE MEMBERS]=====================================
+     */
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += HandleMusicAndAmbienceOnSceneChange;
+    }
+
+    private void OnDisable()
+    {
+        CleanUp();
+        SceneManager.sceneLoaded -= HandleMusicAndAmbienceOnSceneChange;
+    }
+
+    private void HandleMusicAndAmbienceOnSceneChange(Scene scene, LoadSceneMode mode)
+    {
+        CleanUp();
+        onAudioSceneChange?.Invoke();
+    }
+
+    private void InitVCA()
+    {
+        _vca.Add("Ambience", vca_Ambience);
+        _vca.Add("Music", vca_Music);
+        _vca.Add("SFX", vca_SFX);
+        _vca.Add("UI", vca_UI);
+        _vcaPath.Add("Ambience", "vca:/Ambience");
+        _vcaPath.Add("Music", "vca:/Music");
+        _vcaPath.Add("SFX", "vca:/SoundEffect");
+        _vcaPath.Add("UI", "vca:/UI");
+    }
+
+    private bool SetVCA(string channel)
+    {
+        if (!_vca[channel].isValid())
+        {
+            VCA v;
+            v = RuntimeManager.GetVCA(_vcaPath[channel]);
+            if (v.isValid())
+            {
+                _vca[channel] = v;
+                return true;
+            }
+            else
+            {
+                Debug.LogError("[AudioManager] VCA invalid");
+                return false;
+            }
+        }
+        else return true;
+    }
+
+
+    private EventInstance slider;
+
+    private void PlaySliderMax()
+    {
+        instance.PlayOneShot(FMODEvents.instance.sliderMax);
+    }
+
+    private void PlaySliderMin()
+    {
+        instance.PlayOneShot(FMODEvents.instance.sliderMin);
+    }
+
+    private void PlaySliderValue()
+    {
+        instance.PlayEvent(slider);
+    }
+
+    private void PlayCheckBoxOn()
+    {
+        instance.PlayOneShot(FMODEvents.instance.checkBoxOn);
+    }
+
+    private void PlayCheckBoxOff()
+    {
+        instance.PlayOneShot(FMODEvents.instance.checkBoxOff);
     }
 
     private void CleanUp()
     {
+        if (_eventInstances == null)
+        {
+            return;
+        }
         //stop and release any created instances
-        Debug.Log("Clean Up FMOD Events");
+        //Debug.Log("Clean Up FMOD Events");
         foreach (EventInstance eventInstance in _eventInstances)
         {
             if (!eventInstance.isValid()) return;
-            
             eventInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
             eventInstance.release();
         }
         CleanUpEmitters();
-        beatCallback -= BeatCallback;
-
+        _eventInstances.Clear();
+    }
+    
+    private void CleanUpAlwaysActive()
+    {
+        //stop and release any created instances
+        //Debug.Log("Clean Up FMOD Events");
+        foreach (EventInstance eventInstance in _eventInstancesAlwaysActive)
+        {
+            if (!eventInstance.isValid()) return;
+            eventInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+            eventInstance.release();
+        }
+        _eventInstancesAlwaysActive.Clear();
     }
 
     public void CleanUpEmitters()
@@ -241,10 +334,5 @@ public class AudioManager : MonoBehaviour
         {
             emitter.Stop();
         }
-    }
-
-    private void OnDestroy()
-    {
-        CleanUp();
     }
 }

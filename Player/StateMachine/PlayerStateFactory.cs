@@ -51,10 +51,12 @@ namespace __OasisBlitz.Player.StateMachine
     }
     public BaseState Slide()
     {
+      InLevelMetrics.Instance?.LogEvent(MetricAction.Slide);
       return states[PlayerStates.Slide];
     }
     public BaseState Dash()
     {
+      InLevelMetrics.Instance?.LogEvent(MetricAction.Dash);
       return states[PlayerStates.Dash];  
     }
     public BaseState Drill()
@@ -68,6 +70,7 @@ namespace __OasisBlitz.Player.StateMachine
     
     public BaseState DrillBelow()
     {
+      InLevelMetrics.Instance?.LogEvent(MetricAction.DrillIn);
       return states[PlayerStates.DrillBelow];
     }
     
@@ -83,6 +86,7 @@ namespace __OasisBlitz.Player.StateMachine
 
     public BaseState Dead()
     {
+      InLevelMetrics.Instance?.LogEvent(MetricAction.Death);
       return states[PlayerStates.Dead];
     }
 

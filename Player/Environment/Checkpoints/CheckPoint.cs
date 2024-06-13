@@ -28,6 +28,8 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Checkpoints
         {
             myRend = GetComponent<MeshRenderer>();
             myCol = GetComponent<SphereCollider>();
+
+            // transform.localScale = Vector3.one;
         }
         
         private void Start()
@@ -54,11 +56,11 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Checkpoints
 
             // TODO: Enable this for dynamic audio
             // AudioManager.instance.musicCheckPoint = musicIntensity;
-            AudioManager.instance.PlayOneShot(FMODEvents.instance.checkPointFlag);
+            // AudioManager.instance.PlayOneShot(FMODEvents.instance.checkPointFlag, transform.position);
             myRend.material = activatedMaterial;
             // ctx.DrillixirManager.FullRefillDrillixir();
-            _flag.gameObject.SetActive(true);
-            _flag.SetFlagActive(true);
+            // _flag.gameObject.SetActive(true);
+            // _flag.SetFlagActive(true);
         }
 
         public void EnableCurrentCheckpoint()

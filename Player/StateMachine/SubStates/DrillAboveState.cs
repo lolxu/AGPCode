@@ -26,6 +26,12 @@ namespace __OasisBlitz.Player.StateMachine.SubStates
                 // consume current bounce
                 Ctx.RequireNewJumpPress = true;
                 BounceAbility.BounceAttemptResult bounceAttemptResult = BounceAbility.Instance.AirBounce();
+
+
+                if (bounceAttemptResult.DidBounce)
+                {
+                    Ctx.BanditAnimationController.PlayBlastFromDrill(bounceAttemptResult.BounceVelocity);
+                }
             }
             CheckSwitchStates();
         }
@@ -38,9 +44,16 @@ namespace __OasisBlitz.Player.StateMachine.SubStates
         {
             // If in contact with penetrable ground, switch to below state
             if (Ctx.DrillChecker.CheckCollidingWithDrillable())
-            { 
-                FeelEnvironmentalManager.Instance.PlaySandBurstFeedback(Ctx.gameObject.transform.position, 1.25f);
-                
+            {
+                if (Ctx.InWaterTrigger)
+                {
+                    FeelEnvironmentalManager.Instance.PlayWaterBurstFeedback(Ctx.transform.position, 1.25f);
+                    Ctx.PlayerAudio.PlaySplashSound();
+                }
+                else
+                {
+                    FeelEnvironmentalManager.Instance.PlaySandBurstFeedback(Ctx.transform.position, 1.25f);
+                }
                 SwitchState(Factory.DrillBelow());
             }
         }

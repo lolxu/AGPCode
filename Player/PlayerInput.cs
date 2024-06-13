@@ -6,6 +6,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using __OasisBlitz.UI;
+using Obi;
+using Constants = __OasisBlitz.Utility.Constants;
 
 namespace __OasisBlitz.Player
 {
@@ -23,14 +25,29 @@ namespace __OasisBlitz.Player
             public bool SurgeJumpDown;
             public bool RecenterCameraDown;
         }
+
+        public enum PlayerInputState
+        {
+            Character,
+            UI,
+            CritterInteract,
+            SlideShowControls,
+            Nothing
+        }
+
+        private PlayerInputState currInputState = PlayerInputState.Nothing;
         
         //critter interact
         public static Action CancelCritterInteraction;
+        public static Action CritterContinueInteraction;
+        
+        //SlideShowSkip
+        public static Action StartHoldingSkip;
+        public static Action StopHoldingSkip;
 
         public PlayerInputActions playerInputActions; // NOTE: PlayerInput class must be generated from New Input System in Inspector
 
         private PlayerCharacterInputs currentInputs;
-        private InputMap currentInputMap;
 
         [SerializeField] private UnityEngine.InputSystem.PlayerInput playerInputComponent;      // Access control schemes in PlayerInputActions
         private string controlScheme;
@@ -55,8 +72,12 @@ namespace __OasisBlitz.Player
         void Awake()
         {
             // Set the mouse to be invisible and locked to the center of the screen
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            if(!FindObjectOfType<MainMenu>())
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
+            
 
             playerInputActions = new PlayerInputActions();
 
@@ -87,6 +108,9 @@ namespace __OasisBlitz.Player
             playerInputActions.CharacterControls.TimerReset.canceled += OnTimerReset;
             playerInputActions.CharacterControls.TimerStartStop.canceled += OnTimerStartStop;
 
+            playerInputActions.CharacterControls.ControlsDetection.started += GetFirstKeyPressed;
+            playerInputActions.UI.ControlsDetection.started += GetFirstKeyPressed;
+
             //set level loader callbacks
             playerInputActions.LeveLoaderUI.Resume.started += OnResumePressed;
 
@@ -99,6 +123,10 @@ namespace __OasisBlitz.Player
             //Critter Talk Callbacks
             playerInputActions.CritterTalkingControls.CancelInteraction.started += CancelCritterInteract;
             playerInputActions.CritterTalkingControls.Interact.started += ClearPlayerInput;
+
+            //Slideshow Skip Callbacks
+            playerInputActions.SlideShowControls.Skip.started += StartHoldSkip;
+            playerInputActions.SlideShowControls.Skip.canceled += StopHoldSkip;
 
             // InputSystem.onDeviceChange += OnDeviceChange;
 
@@ -288,7 +316,6 @@ namespace __OasisBlitz.Player
         {
             float abilityInput = context.ReadValue<float>();
             currentInputs.DrillDown = abilityInput > ShoulderDownThreshhold;
-            drillixirBar.DrillPressed(false);
         }
         
         private void OnTargetedDashPerformed(InputAction.CallbackContext context)
@@ -335,23 +362,21 @@ namespace __OasisBlitz.Player
 
         private void OnEnable()
         {
-            EnableCharacterControls();
+            // if there is a main menu, don't do this please.
+            // i am sorry little one for writing this code - John (Evil Thanos 10 PM John)
+            if (!FindObjectOfType<MainMenu>())
+            {
+                EnableCharacterControls();
+            }
+            
             // Resume += OnResume;
             Pause += OnPause;
         }
 
         private void OnDisable()
         {
-            if (currentInputMap == InputMap.Character)
-            {
-                DisableCharacterControls();
-            }
-            else if (currentInputMap == InputMap.LevelLoaderUI)
-            {
-                DisableLevelLoaderUIControls();
-            }
-
             // Resume -= OnResume;
+            SwitchCurrentInputState(PlayerInputState.Nothing);
             Pause -= OnPause;
         }
 
@@ -371,37 +396,67 @@ namespace __OasisBlitz.Player
 
         public ResumeDelegate Resume;
 
-        public enum InputMap
-        {
-            Character,
-            LevelLoaderUI
-        }
-
         public void EnableCharacterControls()       // Public for UI
         {
-            // enable the character controls action map
-            playerInputActions.CritterTalkingControls.Disable();
-            playerInputActions.CharacterControls.Enable();
-            playerInputActions.UI.Disable();
+            SwitchCurrentInputState(PlayerInputState.Character);
         }
 
-        public void DisableCharacterControls()      // Public for UI
+        public void EnableUIControls()      // Public for UI
         {
-            // disable the character controls action map
-            playerInputActions.CritterTalkingControls.Disable();
-            playerInputActions.CharacterControls.Disable();
-            playerInputActions.UI.Enable();
-            // playerInputActions.Drilling.Enable();
+            SwitchCurrentInputState(PlayerInputState.UI);
         }
 
-        public void EnterCritterInteractState()
+        public void EnableCritterInteractControls()
         {
-            playerInputActions.CritterTalkingControls.Enable();
-            playerInputActions.CharacterControls.Disable();
-            playerInputActions.UI.Disable();
-            // playerInputActions.Drilling.Disable();
+            SwitchCurrentInputState(PlayerInputState.CritterInteract);
         }
-
+        public void SwitchCurrentInputState(PlayerInputState state)
+        {
+#if DEBUG
+            if (Constants.DebugPlayerInputStateChanges)
+            {
+                Debug.Log("PlayerInput Switching from: " + currInputState.ToString() + " to " + state.ToString());
+            }
+#endif
+            if (currInputState == state)
+            {
+                return;
+            }
+            
+            switch (currInputState)
+            {
+                case PlayerInputState.Character:
+                    playerInputActions.CharacterControls.Disable();
+                    break;
+                case PlayerInputState.CritterInteract:
+                    playerInputActions.CritterTalkingControls.Disable();
+                    break;
+                case PlayerInputState.UI:
+                    playerInputActions.UI.Disable();
+                    break;
+                case PlayerInputState.SlideShowControls:
+                    playerInputActions.SlideShowControls.Disable();
+                    break;
+            }
+            
+            currInputState = state;
+            
+            switch (currInputState)
+            {
+                case PlayerInputState.Character:
+                    playerInputActions.CharacterControls.Enable();
+                    break;
+                case PlayerInputState.CritterInteract:
+                    playerInputActions.CritterTalkingControls.Enable();
+                    break;
+                case PlayerInputState.UI:
+                    playerInputActions.UI.Enable();
+                    break;
+                case PlayerInputState.SlideShowControls:
+                    playerInputActions.SlideShowControls.Enable();
+                    break;
+            }
+        }
         private void EnableLevelLoaderUIControls()
         {
             playerInputActions.LeveLoaderUI.Enable();
@@ -414,14 +469,9 @@ namespace __OasisBlitz.Player
 
         private void OnPausePressed(InputAction.CallbackContext context)
         {
+            if(!UIManager.Instance.canPauseGame) { return; }
             if(UIManager.Instance.WinScreenActive()) { return; }    // Don't do pause if win interface is active
-                                                                    // Pause.Invoke();
-            /*            if(GameObject.Find("UIAudio") == null)
-                        {
-                            Instantiate(UIAudioPrefab);
-                        } 
-                        UIAudio.Instance.PlayPause();*/
-            AudioManager.instance.PlayOneShot(FMODEvents.instance.pause, UIManager.Instance.transform.position);
+
             OnPause();
         }
 
@@ -432,14 +482,16 @@ namespace __OasisBlitz.Player
         private void OnPause()
         {
             //Switch to levelLoad Input Map
-            //SwitchInputMap(InputMap.LevelLoaderUI);            
+            //SwitchInputMap(InputMap.LevelLoaderUI);   
             if (UIManager.Instance.isPaused) {
                 UIManager.Instance.UnpauseGame();
-                EnableCharacterControls();
+                if (!SettingsUI.Instance.settingsActive) { 
+                    EnableCharacterControls();
+                }
             }
             else {
                 UIManager.Instance.PauseGame();
-                DisableCharacterControls();
+                EnableUIControls();
             }
         }
 
@@ -469,6 +521,11 @@ namespace __OasisBlitz.Player
         private void ClearPlayerInput(InputAction.CallbackContext context)
         {
             currentInputs.MoveInput = Vector3.zero;
+            if (CritterContinueInteraction != null)
+            {
+                CritterContinueInteraction.Invoke();
+            }
+
         }
         private void CancelCritterInteract(InputAction.CallbackContext context)
         {
@@ -478,33 +535,28 @@ namespace __OasisBlitz.Player
             }
         }
 
-        //Switches Input Map
-        private void SwitchInputMap(InputMap switchTo)
+        private void StartHoldSkip(InputAction.CallbackContext context)
         {
-            if (switchTo == currentInputMap)
+            if (StartHoldingSkip != null)
             {
-                return;
+                StartHoldingSkip.Invoke();
             }
+        }
+        
+        private void StopHoldSkip(InputAction.CallbackContext context)
+        {
+            if (StopHoldingSkip != null)
+            {
+                StopHoldingSkip.Invoke();
+            }
+        }
 
-            if (currentInputMap == InputMap.Character)
+        private void GetFirstKeyPressed(InputAction.CallbackContext context)
+        {
+            if(!GlobalSettings.Instance.firstKeyPressed)
             {
-                DisableCharacterControls();
+                GlobalSettings.Instance.FirstKeyPressed();
             }
-            else if (currentInputMap == InputMap.LevelLoaderUI)
-            {
-                DisableLevelLoaderUIControls();
-            }
-
-            if (switchTo == InputMap.Character)
-            {
-                EnableCharacterControls();
-            }
-            else if (switchTo == InputMap.LevelLoaderUI)
-            {
-                EnableLevelLoaderUIControls();
-            }
-
-            currentInputMap = switchTo;
         }
     }
 }

@@ -1,3 +1,4 @@
+using __OasisBlitz.__Scripts.FEEL;
 using UnityEngine;
 using MoreMountains.Feedbacks;
 
@@ -10,5 +11,6 @@ namespace __OasisBlitz.Player
         public MMF_Player impactEnemyFeedback;
         public MMF_Player playerBoostFeedback;
         public MMF_Player slideFeedback;
+        public MMF_Player deathFeedback;
     }
 }

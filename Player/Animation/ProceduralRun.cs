@@ -62,6 +62,7 @@ namespace __OasisBlitz.Player.Animation
         [SerializeField] private AnimationCurve runCurve;
         
         [SerializeField] private AnimancerComponent _Animancer;
+        [SerializeField] private PlayerPhysics playerPhysics;
         [SerializeField] private PlayerAudio playerAudio;
         
         private float previousFrameRunStage = 0.0f;
@@ -140,13 +141,12 @@ namespace __OasisBlitz.Player.Animation
             
             if (previousFrameRunStage < 1.0f && surveyorWheel.RunStage >= 1.0f)
             {
-                playerAudio.PlayFootstep(PlayerPhysics.OnSurfaceType.Penetrable);
+               playerAudio.PlayFootstep();
             }
             // This is a slightly messy way to check for the foot plant that occurs when we wrap around between 2 and 0
             else if (previousFrameRunStage > 1.0f && surveyorWheel.RunStage < 1.0f)
             {
-                playerAudio.PlayFootstep(PlayerPhysics.OnSurfaceType.Penetrable);
-                
+               playerAudio.PlayFootstep();
             }
             
             previousFrameRunStage = surveyorWheel.RunStage;

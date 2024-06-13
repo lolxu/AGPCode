@@ -9,7 +9,8 @@ public class TransparentWall : MonoBehaviour
     private Coroutine ResetFadeRoutine;
     private float ResetAlpha = 1.0f;
     private float FadeAlpha = 0.0f;
-    private float FadeSpeedMultiplier = 3.0f;
+    private float FadeOutSpeedMultiplier = 8.0f;
+    private float FadeInSpeedMultiplier = 3.0f;
     private float currAlpha;
     private int alphaPropertyID;
     [SerializeField] private MeshRenderer renderer;
@@ -65,7 +66,7 @@ public class TransparentWall : MonoBehaviour
         
         while (currAlpha > FadeAlpha)
         {
-            currAlpha -= FadeSpeedMultiplier * Time.deltaTime;
+            currAlpha -= FadeOutSpeedMultiplier * Time.deltaTime;
             
             SetAlpha(currAlpha);
             // renderer.material.SetFloat(alphaPropertyID, currAlpha);
@@ -82,7 +83,7 @@ public class TransparentWall : MonoBehaviour
     {
         while (currAlpha < ResetAlpha)
         {
-            currAlpha += FadeSpeedMultiplier * Time.deltaTime;
+            currAlpha += FadeInSpeedMultiplier * Time.deltaTime;
             // renderer.material.SetFloat(alphaPropertyID, currAlpha);
             SetAlpha(currAlpha);
             yield return null;

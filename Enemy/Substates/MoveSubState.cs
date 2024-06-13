@@ -32,7 +32,7 @@ public class MoveSubState : EnemyBaseState
     {
         if (TimeBetweenAttack <= 0.0f)
         {
-            if (Ctx.WithinAttackDistance())
+            if (Ctx.WithinAttackDistance() && !Ctx.playerStateMachine.IsDead)
             {
                 SwitchState(Factory.Attack());
                 TimeBetweenAttack = Ctx.TimeBetweenAttack;

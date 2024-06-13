@@ -9,6 +9,6 @@ public class AttachUICam : MonoBehaviour
     {
         Canvas canvas = GetComponent<Canvas>();
         canvas.worldCamera = GameObject.FindGameObjectWithTag("UICamera").GetComponent<Camera>();
-        Debug.Log("World Cam is: " + canvas.worldCamera.name);
+        //Debug.Log("World Cam is: " + canvas.worldCamera.name);
     }
 }

@@ -1,12 +1,18 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using __OasisBlitz.Player;
 using __OasisBlitz.Utility;
 using DG.Tweening;
+using FMOD;
+using FMOD.Studio;
+using FMODUnity;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Debug = UnityEngine.Debug;
+using STOP_MODE = FMOD.Studio.STOP_MODE;
 
 [Serializable]
 public class Slide
@@ -27,21 +33,32 @@ public class Slideshow : MonoBehaviour
     public Image fadeOutImage;
     public Image finalFadeOutImage;
 
+    public float lastSlideFadeDuration;
+    public float musicEndingFadeTime;
+
     public int currSlide;
 
     private bool hasCancelRequest = false;
     
+    public Action OnSlideshowEnd;
+    public Action OnSlideshowMusicEnd;
+    public Action OnSlideshowSkip;
+
+    //Slideshow Music
+    private bool canSkip = true;
+    private bool isEndCutScene = false;
+    
     // josh stuff
     [SerializeField] private LoadingScreen loadScreen;
     [SerializeField] private Canvas LoadScreenCanvas;
-
-    public SkipText _SkipText;
+    
     public GameObject AButtonImage;
     private string hotkeyType;
 
-    public void GoToNextScene()
-    {
-        loadScreen.LoadScene(nextSceneName);
+    public void GoToNextScene() {
+        InLevelMetrics.Instance.LogEvent(MetricAction.CutsceneSkip);
+        //loadScreen.LoadScene(nextSceneName);
+        LoadingScreen.Instance.LoadScene(nextSceneName);
 
         // LoadScreen has animated wipe now
         /*
@@ -54,7 +71,7 @@ public class Slideshow : MonoBehaviour
         */
         // StartCoroutine(FadeOutNextScene());
     }
-
+    
     public void GoToNextImage()
     {
         hasCancelRequest = true;
@@ -62,23 +79,31 @@ public class Slideshow : MonoBehaviour
 
     private void Awake()
     {
-        loadScreen = GameObject.Find("LoadScreenCanvas").GetComponent<LoadingScreen>();
+        Debug.Log("Awake, about to look for canvas");
+        loadScreen = GameObject.FindObjectOfType(typeof(LoadingScreen)) as LoadingScreen;
+        Debug.Log("Found canvas");
     }
+
     // Start is called before the first frame update
-    IEnumerator Start()
+    public IEnumerator StartSlideshow(bool endCutScene = false)
     {
-        hotkeyType = GlobalSettings.Instance.displayedController;
-        if (GlobalSettings.Instance.displayedController != "KEYBOARD")
+        Debug.Log("STARTING SLIDESHOW");
+
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        if (endCutScene)
         {
-            _SkipText.SetActiveTextColor(true);
-            AButtonImage.gameObject.SetActive(true);
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.musicEndCutScene);
+            isEndCutScene = true;
         }
         else
         {
-            _SkipText.SetActiveTextColor(false);
-            AButtonImage.gameObject.SetActive(false);
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.musicCutScene);
         }
-        
+
+        hotkeyType = GlobalSettings.Instance.displayedController;
+
         Time.timeScale = 1f;
         // Debug.Log("start!");
         currSlide = 0;
@@ -87,28 +112,31 @@ public class Slideshow : MonoBehaviour
             yield return StartCoroutine(ShowSlide(slides[currSlide]));
             currSlide++;
         }
-        GoToNextScene();
+        
+        EndSlideshow();
+
+        yield return new WaitForSeconds(musicEndingFadeTime);
+        
+        EndSlideShowMusic();
     }
 
-    private void Update()
+    public void EndSlideshow()
     {
-        if (hotkeyType != GlobalSettings.Instance.displayedController)
-        {
-            hotkeyType = GlobalSettings.Instance.displayedController;
-            switch (hotkeyType)
-            {
-                case "KEYBOARD":
-                    _SkipText.SetActiveTextColor(false);
-                    AButtonImage.gameObject.SetActive(false);
-                    break;
-                case "XBOX":
-                case "PLAYSTATION":
-                case "OTHER":
-                    _SkipText.SetActiveTextColor(true);
-                    AButtonImage.gameObject.SetActive(true);
-                    break;
-            }
-        }
+        canSkip = false;
+        StopSkipping();
+        GetComponent<Canvas>().enabled = false;
+        OnSlideshowEnd?.Invoke();
+
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+
+        UIManager.Instance.canPauseGame = true;
+    }
+
+    public void EndSlideShowMusic()
+    {
+        OnSlideshowMusicEnd?.Invoke();
+        gameObject.SetActive(false);
     }
 
     private bool lastSlideFaded = true;
@@ -152,5 +180,70 @@ public class Slideshow : MonoBehaviour
             // wait for half a darkness duration
             yield return new WaitForSeconds(darknessDuration / 2);
         }
+    }
+
+    [SerializeField] private Transform tweenedUI;
+    [SerializeField] private TextMeshProUGUI skipText;
+    [SerializeField] private float delayBeforeFadeIn = 5f;
+    [SerializeField] private float fadeInTime = 2f;
+    [SerializeField] private float endScale = 2.65f;
+    [SerializeField] private float skipTime = 1.5f;
+    private void OnEnable()
+    {
+        PlayerInput.StartHoldingSkip += StartSkip;
+        PlayerInput.StopHoldingSkip += StopSkipping;
+    }
+
+    private void OnDisable()
+    {
+        StopSkipping();
+        PlayerInput.StartHoldingSkip -= StartSkip;
+        PlayerInput.StopHoldingSkip -= StopSkipping;
+    }
+
+    private IEnumerator Start()
+    {
+        yield return new WaitForSeconds(delayBeforeFadeIn);
+        skipText.DOColor(Color.white, fadeInTime);
+    }
+
+    private void StartSkip()
+    {
+        if (skipText.color != Color.white)
+        {
+            skipText.DOKill();
+            skipText.color = Color.white;
+        }
+        if (canSkip)
+        {
+            tweenedUI.DOScale(new Vector3(endScale, tweenedUI.localScale.y, 1f), skipTime)
+                .OnComplete(SkipSlideshow);
+        }
+    }
+
+    private void SkipSlideshow()
+    {
+        if (isEndCutScene)
+        {
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.musicEndCutSceneEnd);    
+        }
+        else
+        {
+            AudioManager.instance.PlayOneShot(FMODEvents.instance.musicCutSceneEnd);
+        }
+
+        OnSlideshowSkip?.Invoke();
+        gameObject.SetActive(false);
+
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+
+        // Can't seem to pause after skipping
+        UIManager.Instance.canPauseGame = true;
+    }
+    private void StopSkipping()
+    {
+        tweenedUI.DOKill();
+        tweenedUI.localScale = new Vector3(0f, tweenedUI.localScale.y, 1f);
     }
 }

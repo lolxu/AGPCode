@@ -74,6 +74,10 @@ public class AdaptiveButtonsHUD : MonoBehaviour
     }
     public void DisplayDashPrompt(bool status)
     {
+        if (!Dash)
+        {
+            return;
+        }
         Dash.SetActive(status);
         if(status)
         {
@@ -98,6 +102,10 @@ public class AdaptiveButtonsHUD : MonoBehaviour
 
     private void DisableAllPrompts()
     {
+        if(!_GroundNoDrill)
+        {
+            return;
+        }
         _GroundNoDrill.gameObject.SetActive(false);
         _GroundDrill.gameObject.SetActive(false);
         _AirNoDrill.gameObject.SetActive(false);
@@ -381,55 +389,18 @@ public class AdaptiveButtonsHUD : MonoBehaviour
 
         DisableAllPrompts();
 
-        AdaptiveButtons.SetActive(GlobalSettings.Instance.controlsHUD);
+        // AdaptiveButtons.SetActive(GlobalSettings.Instance.controlsHUD);      // Handled in MainMenu.cs -- will enable at start once main menu selection done
 
         Inactive(E);
 
         Inactive(X);
         Inactive(Y);
 
-        OverrideAdaptiveHUDSetting();   // First load of the UI will not use callback, do this instead
-        SceneManager.sceneLoaded += OverrideAdaptiveHUDSetting;
     }
     private void OnDestroy()
     {
-        SceneManager.sceneLoaded -= OverrideAdaptiveHUDSetting;
     }
-    void OverrideAdaptiveHUDSetting(Scene scene, LoadSceneMode mode)
-    {
-        if (scene.name == "MainMenu" || scene.name.Contains("Burrow"))
-        {
-            AdaptiveButtons.SetActive(false);
-            UnityEngine.Debug.Log("Force hide adaptive buttons");
-        }
-        else if (scene.name.Contains("Onboard"))
-        {
-            AdaptiveButtons.SetActive(true);
-            UnityEngine.Debug.Log("Force show adaptive buttons");
-        }
-        else
-        {
-            AdaptiveButtons.SetActive(GlobalSettings.Instance.controlsHUD);
-        }
-    }
-    // Override used for first call
-    void OverrideAdaptiveHUDSetting()
-    {
-        if (SceneManager.GetActiveScene().name == "MainMenu" || SceneManager.GetActiveScene().name.Contains("Burrow"))
-        {
-            AdaptiveButtons.SetActive(false);
-            UnityEngine.Debug.Log("Force hide adaptive buttons");
-        }
-        else if (SceneManager.GetActiveScene().name.Contains("Onboard"))
-        {
-            AdaptiveButtons.SetActive(true);
-            UnityEngine.Debug.Log("Force show adaptive buttons");
-        }
-        else
-        {
-            AdaptiveButtons.SetActive(GlobalSettings.Instance.controlsHUD);
-        }
-    }
+
     /* 
     Idle,
     Walk,
@@ -460,8 +431,7 @@ public class AdaptiveButtonsHUD : MonoBehaviour
         switch (currentPlayerState)
         {
             case "Grounded":
-                if (pStateMachine.GauntletManager.extended) { GroundDrill(); }
-                else { GroundNoDrill(); }
+                GroundNoDrill();
                 break;
             case "Drill":
                 if (pStateMachine.IsSubmerged) { Underground(); }
@@ -476,7 +446,6 @@ public class AdaptiveButtonsHUD : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // UnityEngine.Debug.Log(blastReady);
         if(AdaptiveButtons.activeInHierarchy)
         {
             if (currentPlayerState != pStateMachine.CurrentState.StateName()) { currentPlayerState = pStateMachine.CurrentState.StateName(); }

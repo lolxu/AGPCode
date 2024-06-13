@@ -36,20 +36,16 @@ public class BounceAbility : MonoBehaviour
     private bool _canBounce = true;
     private Tween RefreshTween;
     private bool bIsRefreshing = false;
-
-    [SerializeField] public bool StandingBounceEnabled = false;
-    [FormerlySerializedAs("AirBounceEnabled")] [SerializeField] public bool BounceEnabled = true;
+    
+    [SerializeField] public bool BounceEnabled = true;
 
     [SerializeField] private float DelayAfterExitingToRefreshBounce = .1f;
-    [SerializeField] private float GroundedVelocityMultiplier = 1.3f;
-    
+
     [SerializeField] private GameObject BounceParticle;
-    [SerializeField] private GameObject BounceLine;
     [SerializeField] private FMODUnity.EventReference bounceEvent;
     [SerializeField] private HUDManager HUD;
 
     [SerializeField] private DrillixirIndicator drillixirIndicator;
-    [SerializeField] private DrillixirManager DrillixirManager;
 
     private bool initialSet;
     /*
@@ -57,17 +53,8 @@ public class BounceAbility : MonoBehaviour
      */
     // The highest speed you can reach by spamming bounce -- to prevent super high ground speeds
     public float MaxBounceSpeed = 100f;
-    const float minYVelocityForReset = 26.0f;
-    [Header("Standing Boost")] 
-    // will be normalized when used! Z = forwards, Y = up
-    public float StandingBounceForwardsVelocity = 50.0f;
-    public float StandingBounceUpwardsVelocity = 20.0f;
-    
-    [Header("Air Boost")]
-    [SerializeField] private float hitboxRadius = 5.0f;
-    [SerializeField] private LayerMask bounceLayerMask;
-    [SerializeField] private LayerMask enemyShieldLayerMask;    // things that can be between an enemy and a player
-    
+    [Header("Standing Boost")]
+
     [Header("Air Boost Forwards")]
     public float ForwardsForwardsVelocity = 50.0f;
     public float ForwardsUpwardsVelocity = 20.0f;
@@ -118,7 +105,6 @@ public class BounceAbility : MonoBehaviour
                 if (_canBounce)
                 {
                     HUD.SetBlastAvailable();
-                    drillixirIndicator.PlayBlastReadyParticles();
                     if (initialSet)     // If first canBounce is already set, go ahead and play the sound
                     {
                         drillixirIndicator.PlayBlastReady();
@@ -130,12 +116,7 @@ public class BounceAbility : MonoBehaviour
                 }
                 else
                 {
-                    if (TouchGroundToBlast)
-                    {
-                        HUD.SetBlastNotAvailable();
-                    }
-                    
-                    drillixirIndicator.StopBlastReadyParticles();
+                    HUD.SetBlastNotAvailable();
                 }
             }
         }
@@ -171,37 +152,46 @@ public class BounceAbility : MonoBehaviour
         initialSet = false;
         ctx = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerStateMachine>();
     }
+
+    public Material[] _outlineMaterials;
+
+    private void UpdateOutlineShader(bool enabled)
+    {
+        //_OutlineSize
+        //_OutlineColor
+    }
     
     private void ConsumeBounce()
     {
-        if (TouchGroundToBlast)
-        {
-            CanBounce = false;
-        }
-        ctx.DrillixirManager.ConsumeBlastDrillixir();
+        CanBounce = false;
         
     }
 
     public void RefreshBounce()
     {
-        if (!_canBounce && !bIsRefreshing)
+        if (!_canBounce)
         {
-            bIsRefreshing = true;
-            RefreshTween = DOVirtual.DelayedCall(DelayAfterExitingToRefreshBounce,
-                ()=>
-            {
-                bIsRefreshing = false;
-                CanBounce = true;
-                DrillixirManager.AddDrillixirCharge();
-            }, false);
+            CanBounce = true;
         }
+
+        // if (!_canBounce && !bIsRefreshing)
+        // {
+        //     bIsRefreshing = true;
+        //     RefreshTween = DOVirtual.DelayedCall(DelayAfterExitingToRefreshBounce,
+        //         ()=>
+        //     {
+        //         bIsRefreshing = false;
+        //         CanBounce = true;
+        //         DrillixirManager.AddDrillixirCharge();
+        //     }, false);
+        // }
     }
 
     public BounceAttemptResult AirBounce()
     {
         BounceAttemptResult bounceAttemptResult = new BounceAttemptResult();
 
-        if (!_canBounce || !ctx.DrillixirManager.CanBlast())
+        if (!_canBounce)
         {
             return bounceAttemptResult;
         }
@@ -239,6 +229,8 @@ public class BounceAbility : MonoBehaviour
             
         BounceFeedback(ctx.transform.position, AddedVelocity);
 
+        InLevelMetrics.Instance?.LogEvent(MetricAction.Blast);
+        
         return AddedVelocity;
     }
 

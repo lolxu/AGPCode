@@ -25,7 +25,7 @@ public class WinScreen : MonoBehaviour
 
         //LoadCanvas.gameObject.SetActive(true);
         //loadScreen.LoadScene(SceneManager.GetActiveScene().name);
-        LevelManager.Instance.LoadAnySceneAsync(SceneManager.GetActiveScene().name);
+        LevelManager.Instance.LoadAnySceneAsync(SceneManager.GetActiveScene().name, false);
         pInput.EnableCharacterControls();
         this.gameObject.SetActive(false);
         
@@ -38,16 +38,16 @@ public class WinScreen : MonoBehaviour
         // GameMetadataTracker.Instance.ResetActivatedFruit();
         if (level == "MainMenu")
         {
-            Destroy(GameObject.FindGameObjectWithTag("Essentials"));
+            // Destroy(GameObject.FindGameObjectWithTag("Essentials"));
             //LoadCanvas.gameObject.SetActive(true);
-            LevelManager.Instance.LoadAnySceneAsync("MainMenu");
+            LevelManager.Instance.LoadAnySceneAsync("MainMenu", true);
         }
         else
         {
             pInput.EnableCharacterControls();
             this.gameObject.SetActive(false);
             //LoadCanvas.gameObject.SetActive(true);
-            LevelManager.Instance.LoadAnySceneAsync(level);
+            LevelManager.Instance.LoadAnySceneAsync(level, false);
         }
 
         // SceneManager.LoadScene(level);

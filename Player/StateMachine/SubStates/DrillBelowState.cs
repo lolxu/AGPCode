@@ -33,11 +33,14 @@ namespace __OasisBlitz.Player.StateMachine.SubStates
             Ctx.PlayerAudio.PlaySandImpact();
             Ctx.Drill.DrillBlip();
 
-            Ctx.PlayerPhysics.CurrentGravityMode = PlayerPhysics.GravityMode.DrillBelow;
+            if (!Ctx.bForceDrillAboveGravity)
+            {
+                Ctx.PlayerPhysics.CurrentGravityMode = PlayerPhysics.GravityMode.DrillBelow;
+            }
             Ctx.PlayerPhysics.CurrentDragMode = PlayerPhysics.DragMode.Submerged;
             Ctx.PlayerPhysics.CurrentInputMode = PlayerPhysics.InputMode.Submerged;
             Ctx.CharacterController.IsDrillingInsideTerrain = true;
-            
+
             // AddNormalBoost(true);
             Ctx.PlayerFeedbacks.drillSubmergeFeedback.PlayFeedbacks();
             SurgeJump.Instance.SurgeJumpRequested = false;
@@ -50,16 +53,12 @@ namespace __OasisBlitz.Player.StateMachine.SubStates
         public override void UpdateState()
         {
             collidingWithPenetrable = Ctx.DrillChecker.CheckCollidingWithDrillable();
-            Ctx.DrillixirManager.TimeBasedRefill(Time.deltaTime);
 
             CheckSwitchStates();
         }
 
         public override void ExitState()
         {
-            // Give Integer Drillixir Back:
-            Ctx.DrillixirManager.AddDrillixirCharge();
-            
             // Time.timeScale = 1f;
             MMTimeManager.Instance.NormalTimeScale = 1f;
             
@@ -97,9 +96,18 @@ namespace __OasisBlitz.Player.StateMachine.SubStates
             if (!collidingWithPenetrable)
             {
                 // Play sand feedback
-                FeelEnvironmentalManager.Instance.PlaySandBurstFeedback(Ctx.gameObject.transform.position, 1.5f);
+                if (Ctx.InWaterTrigger)
+                {
+                    FeelEnvironmentalManager.Instance.PlayWaterBurstFeedback(Ctx.gameObject.transform.position, 1.5f);
+                    Ctx.PlayerAudio.PlaySplashSound();
+                }
+                else
+                {
+                    FeelEnvironmentalManager.Instance.PlaySandBurstFeedback(Ctx.gameObject.transform.position, 1.5f);
+                }
                 
                 SwitchState(Factory.DrillAbove());
+                InLevelMetrics.Instance?.LogEvent(MetricAction.DrillOut);
             }
         }
 

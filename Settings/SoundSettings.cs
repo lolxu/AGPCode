@@ -35,6 +35,8 @@ public class SoundSettings : MonoBehaviour
     private Bus environmentBus;
     private Bus uiBus;
 
+    // Other ones I found
+
     public float[] GetVolumeValues()
     {
         return values;
@@ -80,7 +82,8 @@ public class SoundSettings : MonoBehaviour
     {
         musicI = val;
         musicVolume = values[musicI];
-        musicBus.setVolume(musicVolume);
+        //musicBus.setVolume(musicVolume);
+        AudioManager.instance.SetVolume("Music", musicVolume);
         PlayerPrefs.SetFloat("Music Volume", musicVolume);
     }
     public void ChangeMusicVolume(string sign)      // Should be increments of +0.1f or -0.1f
@@ -92,7 +95,8 @@ public class SoundSettings : MonoBehaviour
             {
                 musicI += 1;
                 musicVolume = values[musicI];
-                musicBus.setVolume(musicVolume);
+                //musicBus.setVolume(musicVolume);
+                AudioManager.instance.SetVolume("Music", musicVolume);
                 PlayerPrefs.SetFloat("Music Volume", musicVolume);
             }
             return;
@@ -103,7 +107,8 @@ public class SoundSettings : MonoBehaviour
             {
                 musicI -= 1;
                 musicVolume = values[musicI];
-                musicBus.setVolume(musicVolume);
+                //musicBus.setVolume(musicVolume);
+                AudioManager.instance.SetVolume("Music", musicVolume);
                 PlayerPrefs.SetFloat("Music Volume", musicVolume);
             }
             return;
@@ -114,7 +119,8 @@ public class SoundSettings : MonoBehaviour
     {
         playerI = val;
         playerVolume = values[playerI];
-        playerBus.setVolume(playerVolume);
+        //playerBus.setVolume(playerVolume);
+        AudioManager.instance.SetVolume("SFX", playerVolume);
         PlayerPrefs.SetFloat("Player Volume", playerVolume);
     }
     public void ChangePlayerVolume(string sign)      // Should be increments of +0.1f or -0.1f
@@ -126,7 +132,8 @@ public class SoundSettings : MonoBehaviour
             {
                 playerI += 1;
                 playerVolume = values[playerI];
-                playerBus.setVolume(playerVolume);
+                //playerBus.setVolume(playerVolume);
+                AudioManager.instance.SetVolume("SFX", playerVolume);
                 PlayerPrefs.SetFloat("Player Volume", playerVolume);
                 // Debug.Log($"Player volume: {playerVolume}");
             }
@@ -138,7 +145,8 @@ public class SoundSettings : MonoBehaviour
             {
                 playerI -= 1;
                 playerVolume = values[playerI];
-                playerBus.setVolume(playerVolume);
+                //playerBus.setVolume(playerVolume);
+                AudioManager.instance.SetVolume("SFX", playerVolume);
                 PlayerPrefs.SetFloat("Player Volume", playerVolume);
                 // Debug.Log($"Player volume: {playerVolume}");
             }
@@ -151,7 +159,7 @@ public class SoundSettings : MonoBehaviour
     {
         enemyI = val;
         enemyVolume = values[enemyI];
-        enemyBus.setVolume(enemyVolume);
+        //enemyBus.setVolume(enemyVolume);
         PlayerPrefs.SetFloat("Enemy Volume", enemyVolume);
     }
     public void ChangeEnemyVolume(string sign)      // Should be increments of +0.1f or -0.1f
@@ -163,7 +171,7 @@ public class SoundSettings : MonoBehaviour
             {
                 enemyI += 1;
                 enemyVolume = values[enemyI];
-                enemyBus.setVolume(enemyVolume);
+                //enemyBus.setVolume(enemyVolume);
                 PlayerPrefs.SetFloat("Enemy Volume", enemyVolume);
                 // Debug.Log($"Enemy volume: {enemyVolume}");
             }
@@ -175,7 +183,7 @@ public class SoundSettings : MonoBehaviour
             {
                 enemyI -= 1;
                 enemyVolume = values[enemyI];
-                enemyBus.setVolume(enemyVolume);
+                //enemyBus.setVolume(enemyVolume);
                 PlayerPrefs.SetFloat("Enemy Volume", enemyVolume);
                 // Debug.Log($"Enemy volume: {enemyVolume}");
             }
@@ -188,7 +196,8 @@ public class SoundSettings : MonoBehaviour
     {
         environmentI = val;
         environmentVolume = values[environmentI];
-        environmentBus.setVolume(environmentVolume);
+        //environmentBus.setVolume(environmentVolume);
+        AudioManager.instance.SetVolume("Ambience", environmentVolume);
         PlayerPrefs.SetFloat("Environment Volume", environmentVolume);
     }
     public void ChangeEnvironmentVolume(string sign)      // Should be increments of +0.1f or -0.1f
@@ -200,7 +209,8 @@ public class SoundSettings : MonoBehaviour
             {
                 environmentI += 1;
                 environmentVolume = values[environmentI];
-                environmentBus.setVolume(environmentVolume);
+                //environmentBus.setVolume(environmentVolume);
+                AudioManager.instance.SetVolume("Ambience", environmentVolume);
                 PlayerPrefs.SetFloat("Environment Volume", environmentVolume);
                 // Debug.Log($"Environment volume: {environmentVolume}");
             }
@@ -212,7 +222,8 @@ public class SoundSettings : MonoBehaviour
             {
                 environmentI -= 1;
                 environmentVolume = values[environmentI];
-                environmentBus.setVolume(environmentVolume);
+                //environmentBus.setVolume(environmentVolume);
+                AudioManager.instance.SetVolume("Ambience", environmentVolume);
                 PlayerPrefs.SetFloat("Environment Volume", environmentVolume);
                 // Debug.Log($"Environment volume: {environmentVolume}");
             }
@@ -225,7 +236,8 @@ public class SoundSettings : MonoBehaviour
     {
         uiI = val;
         uiVolume = values[uiI];
-        uiBus.setVolume(uiVolume);
+        //uiBus.setVolume(uiVolume);
+        AudioManager.instance.SetVolume("UI", uiVolume);
         PlayerPrefs.SetFloat("UI Volume", uiVolume);
     }
     public void ChangeUIVolume(string sign)      // Should be increments of +0.1f or -0.1f
@@ -237,7 +249,8 @@ public class SoundSettings : MonoBehaviour
             {
                 uiI += 1;
                 uiVolume = values[uiI];
-                uiBus.setVolume(uiVolume);
+                //uiBus.setVolume(uiVolume);
+                AudioManager.instance.SetVolume("UI", uiVolume);
                 PlayerPrefs.SetFloat("UI Volume", uiVolume);
                 // Debug.Log($"UI volume: {uiVolume}");
             }
@@ -249,7 +262,8 @@ public class SoundSettings : MonoBehaviour
             {
                 uiI -= 1;
                 uiVolume = values[uiI];
-                uiBus.setVolume(uiVolume);
+                //uiBus.setVolume(uiVolume);
+                AudioManager.instance.SetVolume("UI", uiVolume);
                 PlayerPrefs.SetFloat("UI Volume", uiVolume);
                 // Debug.Log($"UI volume: {uiVolume}");
             }
@@ -263,7 +277,7 @@ public class SoundSettings : MonoBehaviour
     {
         if (!PlayerPrefs.HasKey("Master Volume"))
         {
-            masterVolume = 1.0f;
+            masterVolume = 0.5f;
             PlayerPrefs.SetFloat("Master Volume", masterVolume);
         }
         else
@@ -272,7 +286,7 @@ public class SoundSettings : MonoBehaviour
         }
         if (!PlayerPrefs.HasKey("Music Volume"))
         {
-            musicVolume = 1.0f;
+            musicVolume = 0.5f;
             PlayerPrefs.SetFloat("Music Volume", musicVolume);
         }
         else
@@ -281,7 +295,7 @@ public class SoundSettings : MonoBehaviour
         }
         if (!PlayerPrefs.HasKey("Player Volume"))
         {
-            playerVolume = 1.0f;
+            playerVolume = 0.5f;
             PlayerPrefs.SetFloat("Player Volume", playerVolume);
         }
         else
@@ -290,7 +304,7 @@ public class SoundSettings : MonoBehaviour
         }
         if (!PlayerPrefs.HasKey("Enemy Volume"))
         {
-            enemyVolume = 1.0f;
+            enemyVolume = 0.5f;
             PlayerPrefs.SetFloat("Enemy Volume", enemyVolume);
         }
         else
@@ -299,7 +313,7 @@ public class SoundSettings : MonoBehaviour
         }
         if (!PlayerPrefs.HasKey("Environment Volume"))
         {
-            environmentVolume = 1.0f;
+            environmentVolume = 0.5f;
             PlayerPrefs.SetFloat("Environment Volume", environmentVolume);
         }
         else
@@ -308,7 +322,7 @@ public class SoundSettings : MonoBehaviour
         }
         if (!PlayerPrefs.HasKey("UI Volume"))
         {
-            uiVolume = 1.0f;
+            uiVolume = 0.5f;
             PlayerPrefs.SetFloat("UI Volume", uiVolume);
         }
         else
@@ -324,11 +338,15 @@ public class SoundSettings : MonoBehaviour
         Debug.Log(uiVolume);*/
 
         masterBus.setVolume(masterVolume);
-        musicBus.setVolume(musicVolume);
-        playerBus.setVolume(playerVolume);
-        enemyBus.setVolume(enemyVolume);
-        environmentBus.setVolume(environmentVolume);
-        uiBus.setVolume(uiVolume);
+        //musicBus.setVolume(musicVolume);
+        AudioManager.instance.SetVolume("Music", musicVolume);
+        //playerBus.setVolume(playerVolume);
+        AudioManager.instance.SetVolume("SFX", playerVolume);
+        //enemyBus.setVolume(enemyVolume);
+        //environmentBus.setVolume(environmentVolume);
+        AudioManager.instance.SetVolume("Ambience", environmentVolume);
+        //uiBus.setVolume(uiVolume);
+        AudioManager.instance.SetVolume("UI", uiVolume);
 
         masterI = (int)(10 * masterVolume);
         musicI = (int)(10 * musicVolume);
@@ -373,11 +391,13 @@ public class SoundSettings : MonoBehaviour
         
         // TODO: Replace these once the bus names are sorted out
         masterBus = RuntimeManager.GetBus("bus:/");
-        musicBus = RuntimeManager.GetBus("bus:/MIX/Music");
-        playerBus = RuntimeManager.GetBus("bus:/MIX/Player");
-        enemyBus = RuntimeManager.GetBus("bus:/MIX/Enemy");
-        environmentBus = RuntimeManager.GetBus("bus:/MIX/Environment");
-        uiBus = RuntimeManager.GetBus("bus:/MIX/UI");
+
+        // Not needed anymore if using AudioManager to adjust VCA volume instead of bus volume, keep in case we need to do this instead?
+        //musicBus = RuntimeManager.GetBus("bus:/MIX/NoRvb/Music");
+        //playerBus = RuntimeManager.GetBus("bus:/MIX/SendToRvb/Player");
+        //enemyBus = RuntimeManager.GetBus("bus:/MIX/SendToRvb/Enemy");
+        //environmentBus = RuntimeManager.GetBus("bus:/MIX/SendToRvb/Environment");
+        //uiBus = RuntimeManager.GetBus("bus:/MIX/NoRvb/UI");
 
     }
 

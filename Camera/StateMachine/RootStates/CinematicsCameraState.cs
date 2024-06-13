@@ -40,17 +40,19 @@ namespace __OasisBlitz.Camera.StateMachine.RootStates
 
         public override void ExitState()
         {
-            // SwitchState(Factory.SurfaceDefault());
+            // Debug.LogError("Exiting cinematics state");
+            Ctx.StopCameraCinematics(false);
         }
 
         public override void CheckSwitchStates()
         {
-            if (!Ctx.cinematicsCam)
+            // TODO: This might need some change later
+            if (!Ctx.cinematicsCameras[0] || !Ctx.cinematicsCameras[1])
             {
                 Debug.Log("Cinematics Cam not real");
                 SwitchState(Factory.SurfaceDefault());
             }
-            else if (!Ctx.cinematicsCam.gameObject.activeInHierarchy)
+            else if (!Ctx.cinematicsCameras[0].gameObject.activeInHierarchy && !Ctx.cinematicsCameras[1].gameObject.activeInHierarchy)
             {
                 Debug.Log("Cinematics Cam not active anymore");
                 SwitchState(Factory.SurfaceDefault());

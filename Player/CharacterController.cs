@@ -37,11 +37,15 @@ namespace __OasisBlitz.Player
         private bool jumpRequested = false;
 
         //Add tags to this list that we want the player to collide with in drill mode
+        [FormerlySerializedAs("TagsToCollideWithListDefault")] [SerializeField] private List<string> TagsToAvoidListDefault;
+        private HashSet<string> TagsToAvoidSetDefault = new HashSet<string>();
+        
         [FormerlySerializedAs("TagsToCollideWithList")] [SerializeField] private List<string> TagsToCollideWithListDrilling;
         private HashSet<string> TagsToCollideWithSetDrilling = new HashSet<string>();
         
         [SerializeField] private List<string> TagsToCollideWithListDashing;
         private HashSet<string> TagsToCollideWithSetDashing = new HashSet<string>();
+        
 
         private void Start()
         {
@@ -55,6 +59,11 @@ namespace __OasisBlitz.Player
             foreach (string tag in TagsToCollideWithListDashing)
             {
                 TagsToCollideWithSetDashing.Add(tag);
+            }
+            
+            foreach (string tag in TagsToAvoidListDefault)
+            {
+                TagsToAvoidSetDefault.Add(tag);
             }
         }
 
@@ -82,8 +91,10 @@ namespace __OasisBlitz.Player
         {
             // FruitsManager.Instance.RequestFruit();
             LevelManager.Instance.RequestTeleport();
-            CollectableManager.Instance.RequestPickupCollectable();
-            CameraStateMachine.Instance.StopCameraCinematics();
+            // CollectableManager.Instance.RequestPickupCollectable();
+            CameraStateMachine.Instance.StopCameraCinematics(true);
+
+            
             if (SceneManager.GetActiveScene().name.Contains("Burrow"))
             {
                 CheckCritterInteract checkCritterInteract = FindObjectOfType<CheckCritterInteract>();
@@ -183,7 +194,8 @@ namespace __OasisBlitz.Player
         public bool IsColliderValidForCollisions(Collider coll)
         {
             //if we are not drilling, collide with everything
-            if (collisionMode == CollisionMode.Default)
+            if (collisionMode == CollisionMode.Default && !TagsToAvoidListDefault.Contains(coll.tag))
+            // if (collisionMode == CollisionMode.Default)
             {
                 return true;
             }

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using __OasisBlitz.__Scripts.Enemy.Enemies.Flashing;
 using __OasisBlitz.__Scripts.Enemy.old;
+using __OasisBlitz.__Scripts.UI;
 using __OasisBlitz.Player.Physics;
 using DG.Tweening;
 using UnityEngine;
@@ -25,7 +26,8 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
             Ctx.PlayerAudio.PlayDash();
 
             // Shoot drill to target
-            Ctx.Drill.ShootToTarget(Ctx.TargetedDash.ClosestPointOnTargetSurface());
+            // Ctx.Drill.ShootToTarget(Ctx.TargetedDash.ClosestPointOnTargetSurface());
+            Ctx.BanditAnimationController.PlayStartGrapple(Ctx.TargetedDash.currentDashTarget.transform.position);
             
             Ctx.TargetedDash.PerformDash();
             Ctx.PlayerPhysics.ApplyGravity = false;
@@ -46,8 +48,8 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
 
         public override void ExitState()
         {
-            Ctx.Drill.EndDash();
             Ctx.TargetedDash.EndDash();
+            // Ctx.BanditAnimationController.PlayGrappleImpact();
             Ctx.PlayerPhysics.ApplyGravity = true;
             Ctx.CharacterController.CollisionMode = CollisionMode.Default;
             Ctx.cameraStateMachine.SetToLookAtVelocity();
@@ -57,7 +59,6 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
         {
             if (Ctx.TargetedDash.currentDashStage == TargetedDash.DashStage.Finished)
             {
-                Ctx.ModelRotator.OnDashComplete();
                 SwitchState(Factory.FreeFall());
             }
         }
@@ -77,8 +78,12 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
             // TODO: Kill the enemy and set a flag for switching states
             // if (DebugCommandsManager.Instance.godModeStatus()) { return; }       // If God Mode is on -- do not kill
             enemy.Kill();
-            Ctx.TargetedDash.ImpactEnemy();
 
+        }
+
+        protected override void ImpactGrapplePoint(DashTargetPoint grapplePoint)
+        {
+            Ctx.TargetedDash.ImpactGrapplePoint(grapplePoint);
         }
 
         protected override void ImpactNewEnemy(ref Collider coll, Vector3 hitNormal, Vector3 hitPoint)
@@ -98,7 +103,6 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
                     {
                         // Rather than straight up dying, you gets bounced off.
                         // Less punishing but we could try and see whats up
-                        Ctx.TargetedDash.ImpactEnemy();
                         hitNormal.y = 0.0f; // For better more game-like reflection
                         // Debug.DrawLine(coll.transform.position, coll.transform.position + hitNormal.normalized * 20.0f, Color.green, 30.0f);
                         Ctx.PlayerPhysics.ReflectVelocity(hitNormal, Ctx.TargetedDash.TargetPosition(), hardeningEnemyEnemy.bounceMagnitude);
@@ -110,8 +114,9 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
                     hitbox.CollideWithBody(ref coll, hitNormal, hitPoint);
                 }
             }
-            Ctx.TargetedDash.ImpactEnemy();
             Ctx.PlayerFeedbacks.impactEnemyFeedback.PlayFeedbacks();
+            Debug.Log("Hit enemy");
+            Ctx.TargetedDash.ImpactGrapplePoint(coll.gameObject.GetComponentInChildren<DashTargetPoint>());
         }
         
         /// /////////

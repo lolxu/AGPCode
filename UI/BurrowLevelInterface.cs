@@ -51,7 +51,7 @@ public class BurrowLevelInterface : MonoBehaviour
             levelSelectCanvas.worldCamera = GameObject.Find("UICamera").GetComponent<Camera>();
         }
         UIManager.Instance.canPauseGame = false;
-        pInput.DisableCharacterControls();
+        pInput.EnableUIControls();
         StartCoroutine(FocusBurrowLevelInterface());
     }
 

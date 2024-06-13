@@ -67,7 +67,7 @@ public class ForwardShooter : Swarmer
         // Start shrinking the rocks
         for (int i = 0; i < rocks.Count; i++)
         {
-            var pullBackPos = rocks[i].transform.localPosition - transform.forward * 3.5f;
+            var pullBackPos = rocks[i].transform.localPosition - rocks[i].transform.InverseTransformVector(playerTransform.position - transform.position).normalized * 3.5f;
             rockPullBack.Join( rocks[i].transform.DOLocalMove(pullBackPos, 0.35f).SetEase(Ease.InExpo));
             
         }
@@ -90,7 +90,7 @@ public class ForwardShooter : Swarmer
             attackTimeElapsed += Time.deltaTime;
             for (int i = 0; i < Mathf.Min((attackTimeElapsed/timePerShot), rocks.Count); i++)
             {
-                rocks[i].transform.localPosition += transform.forward * Time.deltaTime * launchSpeed;
+                rocks[i].transform.localPosition += rocks[i].transform.InverseTransformVector(playerTransform.position - transform.position).normalized * Time.deltaTime * launchSpeed;
             }
 
             if (attackTimeElapsed >= attackTime - 1.0f
@@ -144,5 +144,10 @@ public class ForwardShooter : Swarmer
         {
             rocks[i].gameObject.SetActive(false);
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        // Debug.DrawLine(transform.position, (playerTransform.position - transform.position).normalized * 10.0f + transform.position, Color.magenta);
     }
 }

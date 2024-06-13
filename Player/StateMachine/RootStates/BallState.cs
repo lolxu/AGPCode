@@ -25,7 +25,6 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
             Ctx.PlayerPhysics.CurrentDragMode = PlayerPhysics.DragMode.Ball;
             Ctx.PlayerPhysics.CurrentInputMode = PlayerPhysics.InputMode.Ball;
             
-            Ctx.BanditAnimationController.PlayBall();
             Debug.Log("Enter ball");
             
             AddInputBasedBoost();
@@ -53,12 +52,15 @@ namespace __OasisBlitz.Player.StateMachine.RootStates
             {
                 SwitchState(Factory.Grounded());
             }
-            else if (Ctx.DrillRequested && Ctx.DrillixirManager.CanStartDrilling() && !Ctx.DrillLocked && !Ctx.RequireNewDrillPressOrEndGrounded && Ctx.ToggleDrill)
+            else if (Ctx.DrillRequested && !Ctx.DrillLocked && !Ctx.RequireNewDrillPressOrEndGrounded && Ctx.ToggleDrill)
             {
                 SwitchState(Factory.Drill());
             }
-            else if (Ctx.TargetedDashRequested && Ctx.TargetedDash.CanPerformDash())
+            else if (Ctx.TargetedDashRequested 
+                     && Ctx.TargetedDash.CanPerformDash()
+                     && !Ctx.RequireNewTargetedDashPress)
             {
+                Ctx.RequireNewTargetedDashPress = true;
                 SwitchState(Factory.Dash());
             }
         }

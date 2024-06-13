@@ -17,10 +17,13 @@ namespace __OasisBlitz.__Scripts.Collectables
         
         public bool isPlaced { get; set; } = false;
         [SerializeField] private DecorType _decorType;
+        [SerializeField] private GameObject _decorObject;
+        [SerializeField] private GameObject _decorGlowingBase;
         [SerializeField] private List<GameObject> _objectComponents;
         [SerializeField] private Material _unplacedMaterial;
         [SerializeField] private List<Material> _placedMaterial;
         [SerializeField] private Collider _collider;
+        [SerializeField] private List<Collider> _colliders;
         
         private void OnTriggerEnter(Collider other)
         {
@@ -42,9 +45,12 @@ namespace __OasisBlitz.__Scripts.Collectables
             isPlaced = CollectableManager.Instance.LookupDecorPlacement(colletctableIndex);
             if (!SceneManager.GetActiveScene().name.Contains("Burrow"))
             {
-                transform.DOLocalRotate(new Vector3(10.0f, 360.0f, 10.0f), 1.5f, RotateMode.FastBeyond360)
+                Vector3 endRot = _decorObject.transform.eulerAngles;
+                _decorObject.transform.DORotate(endRot + new Vector3(0.0f, 360.0f, 30.0f), 1.5f, RotateMode.FastBeyond360)
                 .SetEase(Ease.InOutSine)
                 .SetLoops(-1, LoopType.Yoyo);
+                
+                _decorGlowingBase.SetActive(true);
                 Debug.Log(isPlaced);
                 if (isPlaced)
                 {
@@ -57,6 +63,7 @@ namespace __OasisBlitz.__Scripts.Collectables
             }
             else
             {
+                _decorGlowingBase.SetActive(false);
                 if (!isPlaced)
                 {
                     for(int i = 0; i < _objectComponents.Count; i++)
@@ -68,6 +75,10 @@ namespace __OasisBlitz.__Scripts.Collectables
                 else
                 {
                     _collider.isTrigger = false;
+                    for (int i = 0; i < _colliders.Count; i++)
+                    {
+                        _colliders[i].isTrigger = false;
+                    }
                 }
             }
         }
@@ -105,6 +116,10 @@ namespace __OasisBlitz.__Scripts.Collectables
                 
                 isPlaced = true;
                 _collider.isTrigger = false;
+                for (int i = 0; i < _colliders.Count; i++)
+                {
+                    _colliders[i].isTrigger = false;
+                }
             }
         }
     }

@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class LevelSelectButtonSetPR : MonoBehaviour
 {
+    [SerializeField] private GameObject BestTime;
     [SerializeField] private TextMeshProUGUI PersonalBest;
 
     public void SetPBText(string sceneName)
@@ -12,10 +13,11 @@ public class LevelSelectButtonSetPR : MonoBehaviour
         float PB = XMLFileManager.Instance.LookupPBTime(sceneName);
         if(PB == -1)
         {
-            PersonalBest.text = "00:00:000";
+            BestTime.SetActive(false);
         }
         else
         {
+            BestTime.SetActive(true);
             int min = (int)PB / 60;
             int sec = (int)PB - 60 * min;
             int ms = (int)(1000 * (PB - min * 60 - sec));

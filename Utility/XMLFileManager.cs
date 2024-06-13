@@ -67,25 +67,43 @@ public class XMLFileManager : MonoBehaviour
         public DecorUnlocks m_decorUnlocks = null;
 
         public bool m_blastUnlock = false;
+
+        public bool m_playCutscene = true;
+
+        public bool m_playEndingCutscene = false;
+
+        public string username;
     }
 
     private SaveData mySaveData;
+    private const string defaultUsername = "bandit";
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
+            DontDestroyOnLoad(gameObject);
+            mySaveData = new SaveData();
+            Load();
             SavePath = GetSavePath();
         }
-        
-        mySaveData = new SaveData();
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     public void NewGame()
     {
         mySaveData = new SaveData();
         Save();
+
+        // Also clears collectable status
+        if (CollectableManager.Instance != null)
+        {
+            CollectableManager.Instance.ClearAllCollectableStatus();
+        }
     }
 
     /// <summary>
@@ -119,11 +137,6 @@ public class XMLFileManager : MonoBehaviour
                 // Debug.LogError("Here");
                 mySaveData.m_levelUnlocks.levelPBTime[ind] = time;
             }
-        }
-
-        if (sceneName.Contains("Level 1"))
-        {
-            SaveBlastStatus(true);
         }
         
         Save();
@@ -179,31 +192,31 @@ public class XMLFileManager : MonoBehaviour
         Save();
     }
 
-    /// <summary>
-    /// Saving blast status
-    /// </summary>
-    /// <param name="unlockStatus"> Is blast unlocked? </param>
-    public void SaveBlastStatus(bool unlockStatus)
+    public void SaveCutsceneViewed()
     {
-        if (mySaveData != null)
-        {
-            mySaveData.m_blastUnlock = unlockStatus;
-        }
+        mySaveData.m_playCutscene = false;
         Save();
     }
-
-    /// <summary>
-    /// Returns the blast status from XML
-    /// </summary>
-    /// <returns></returns>
-    public bool GetBlastStatus()
+    
+    public bool ShouldPlayCutscene()
     {
-        Load();
-        if (mySaveData != null)
-        {
-            return mySaveData.m_blastUnlock;
-        }
-        return false;
+        return false; //mySaveData.m_playCutscene;
+    }
+    
+    public void SaveEndingCutsceneViewed()
+    {
+        mySaveData.m_playEndingCutscene = false;
+        Save();
+    }
+    
+    public void SaveEndingCutsceneNeedToView()
+    {
+        mySaveData.m_playEndingCutscene = true;
+        Save();
+    }
+    public bool ShouldPlayEndingCutscene()
+    {
+        return false;//(mySaveData.m_playEndingCutscene);
     }
 
     public void SaveDecorStatus(int index, string decorName, bool decorIsPlaced)
@@ -240,6 +253,36 @@ public class XMLFileManager : MonoBehaviour
                 Debug.LogError("This Decor Doesn't exist in save...");
             }
         }
+        Save();
+    }
+
+    public string GetUsername()
+    {
+        string username = mySaveData.username;
+
+        try
+        {
+            if (username.Length == 0)
+            {
+                username = defaultUsername;
+            }
+        }
+        catch (Exception e)
+        {
+            username = defaultUsername;
+        }
+
+        return username;
+    }
+
+    public void SetUsername(string username)
+    {
+        if (username.Length == 0)
+        {
+            username = defaultUsername;
+        }
+
+        mySaveData.username = username;
         Save();
     }
 
@@ -370,14 +413,19 @@ public class XMLFileManager : MonoBehaviour
                 }
             }
 
-            // Getting level best time
-            int ind = mySaveData.m_levelUnlocks.unlockedScenes.IndexOf(SceneManager.GetActiveScene().name);
-            // Debug.Log(ind);
-            if (ind != -1)
-            {
-                UIManager.Instance.gameObject.GetComponent<Timer>().personalBest =
-                    mySaveData.m_levelUnlocks.levelPBTime[ind];
-            }
+            LoadTimeData();
+        }
+    }
+
+    public void LoadTimeData()
+    {
+        // Getting level best time
+        int ind = mySaveData.m_levelUnlocks.unlockedScenes.IndexOf(SceneManager.GetActiveScene().name);
+        // Debug.Log(ind);
+        if (ind != -1)
+        {
+            UIManager.Instance.gameObject.GetComponent<Timer>().personalBest =
+                mySaveData.m_levelUnlocks.levelPBTime[ind];
         }
     }
 

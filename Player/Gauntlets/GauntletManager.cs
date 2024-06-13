@@ -24,8 +24,6 @@ namespace __OasisBlitz.Player.Gauntlets
         private Transform leftGauntletBone;
         private Transform rightGauntletBone;
 
-        public bool extended { get; private set; } = false;
-
         void Awake()
         {
 
@@ -49,43 +47,31 @@ namespace __OasisBlitz.Player.Gauntlets
 
         public void ExtendBlades()
         {
-            if (extended) return;
-
-            leftGauntlet.SetExtendedBlades();
-            rightGauntlet.SetExtendedBlades();
-
-            extended = true;
         }
 
         public void RetractBlades()
         {
-            if (!extended) return;
-
-            leftGauntlet.SetRetractedBlades();
-            rightGauntlet.SetRetractedBlades();
-
-            extended = false;
 
         }
 
-        public void FormDrill()
-        {
-            extended = false;
-            
-            drill.SetDrillVisible();
-            drill.StartDrillSpin();
-            leftGauntlet.SetDrill();
-            rightGauntlet.SetDrill();
-
-        }
-
-        public void UnformDrill()
-        {
-            leftGauntlet.UnsetDrill();
-            rightGauntlet.UnsetDrill();
-            drill.StopDrillSpin();
-            drill.SetDrillInvisible();
-        }
+        // public void FormDrill()
+        // {
+        //     extended = false;
+        //     
+        //     drill.SetDrillVisible();
+        //     drill.StartDrillSpin();
+        //     leftGauntlet.SetDrill();
+        //     rightGauntlet.SetDrill();
+        //
+        // }
+        //
+        // public void UnformDrill()
+        // {
+        //     leftGauntlet.UnsetDrill();
+        //     rightGauntlet.UnsetDrill();
+        //     drill.StopDrillSpin();
+        //     drill.SetDrillInvisible();
+        // }
 
     }
 }

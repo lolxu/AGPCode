@@ -73,7 +73,7 @@ namespace __OasisBlitz.__Scripts.Player.Environment.Checkpoints
                 
                 if (!myCurrentCheckpointHint.enabled)
                 {
-                    FeelEnvironmentalManager.Instance.checkpointFeedback.PlayFeedbacks(other.gameObject.transform.position);
+                    // FeelEnvironmentalManager.Instance.checkpointFeedback.PlayFeedbacks(other.gameObject.transform.position);
                 }
                 
                 RespawnManager.Instance.SetSpawnPoint(gameObject);

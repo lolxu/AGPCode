@@ -117,12 +117,16 @@ public class CircularShooter : Swarmer
             launchDist += Time.deltaTime * LaunchSpeed;
             //check if ring hits player
             //are we within the distnace and local y range of the rocks and bandit is not submerged
-            if (Mathf.Abs((centerReference.position - playerTransform.position).magnitude - launchDist) < hitBoxWidth
-                && Mathf.Abs(centerReference.InverseTransformPoint(playerTransform.position).y -
-                             centerReference.localPosition.y) < hitBoxHeightTop
-                && !playerStateMachine.IsSubmerged)
+            if (playerTransform != null)
             {
-                playerStateMachine.InstantKill();
+                if (Mathf.Abs((centerReference.position - playerTransform.position).magnitude - launchDist) <
+                    hitBoxWidth
+                    && Mathf.Abs(centerReference.InverseTransformPoint(playerTransform.position).y -
+                                 centerReference.localPosition.y) < hitBoxHeightTop
+                    && !playerStateMachine.IsSubmerged)
+                {
+                    playerStateMachine.InstantKill();
+                }
             }
         }
     }
@@ -143,8 +147,6 @@ public class CircularShooter : Swarmer
                 rockSpin.Append(rocksCenter.DORotate(centerRot + new Vector3(0.0f, 360.0f, 0.0f), Random.Range(5.5f, 8.5f),
                         RotateMode.FastBeyond360)
                     .SetLoops(-1, LoopType.Restart).SetEase(Ease.Linear));
-                
-                launchDist = (centerReference.position - rocks[0].position).magnitude;
             });
             
             dustParticle.Play();
@@ -155,6 +157,8 @@ public class CircularShooter : Swarmer
                 initRocks.Join(rocks[i].DOScale(rockStartLocalScale[i], 0.35f).SetEase(Ease.InOutSine));
                 initRocks.Join(rocks[i].DOLocalMoveY(rocks[i].localPosition.y + 3.0f, 1.25f)).SetEase(Ease.InExpo);
             }
+            
+            launchDist = (centerReference.position - rocks[0].position).magnitude;
         }
     }
     
@@ -192,10 +196,13 @@ public class CircularShooter : Swarmer
         base.HandleAlertMove();
         //kill player if they just touch the rocks
         //check if ring hits player
-        //are we within the distnace and local y range of the rocks and bandit is not submerged
+        //are we within the distnace and local y range of the rocks
+        //bandit is not submerged
+        //recharge dust particles are not playing
         if (Mathf.Abs((centerReference.position - playerTransform.position).magnitude - launchDist) < hitBoxWidth
             && Mathf.Abs(centerReference.InverseTransformPoint(playerTransform.position).y - centerReference.localPosition.y) < hitBoxHeightTop
-            && !playerStateMachine.IsSubmerged) 
+            && !playerStateMachine.IsSubmerged
+            && !dustParticle.isPlaying) 
         {
             playerStateMachine.InstantKill();
         }
@@ -206,12 +213,19 @@ public class CircularShooter : Swarmer
         base.HandleIdle();
         //kill player if they just touch the rocks
         //check if ring hits player
-        //are we within the distnace and local y range of the rocks and bandit is not submerged
-        if (Mathf.Abs((centerReference.position - playerTransform.position).magnitude - launchDist) < hitBoxWidth
-            && Mathf.Abs(centerReference.InverseTransformPoint(playerTransform.position).y - centerReference.localPosition.y) < hitBoxHeightTop
-            && !playerStateMachine.IsSubmerged) 
+        //are we within the distnace and local y range of the rocks
+        //bandit is not submerged
+        //recharge dust particles are not playing
+        if (playerTransform != null)
         {
-            playerStateMachine.InstantKill();
+            if (Mathf.Abs((centerReference.position - playerTransform.position).magnitude - launchDist) < hitBoxWidth
+                && Mathf.Abs(centerReference.InverseTransformPoint(playerTransform.position).y -
+                             centerReference.localPosition.y) < hitBoxHeightTop
+                && !playerStateMachine.IsSubmerged
+                && !dustParticle.isPlaying)
+            {
+                playerStateMachine.InstantKill();
+            }
         }
     }
 
